@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Polymath System V4</title>
+<title>Polymath System Elite</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -14,16 +14,58 @@ color:#e2e8f0;
 text-align:center;
 }
 
+/* TITLE */
+h2{
+margin-top:15px;
+opacity:0.9;
+}
+
+/* RANK DISPLAY */
+#rank-display{
+margin-top:10px;
+}
+
+.rank-title{
+font-size:14px;
+opacity:0.6;
+letter-spacing:2px;
+}
+
+.rank-name{
+font-size:30px;
+font-weight:bold;
+margin:5px 0;
+color:#60a5fa;
+}
+
+.rank-next{
+font-size:13px;
+opacity:0.6;
+}
+
+.progress{
+width:260px;
+height:10px;
+background:#1e293b;
+border-radius:10px;
+margin:8px auto;
+}
+
+.bar{
+height:10px;
+background:linear-gradient(90deg,#3b82f6,#60a5fa);
+border-radius:10px;
+}
+
 /* CORE */
 #core{
-width:120px;height:120px;margin:25px auto;
+width:120px;height:120px;margin:20px auto;
 border-radius:50%;
 background:radial-gradient(circle,#3b82f6,#1d4ed8);
 box-shadow:0 0 60px rgba(59,130,246,0.7);
 animation:pulse 3s infinite;
 }
 @keyframes pulse{
-0%,100%{transform:scale(1);}
 50%{transform:scale(1.2);}
 }
 
@@ -32,18 +74,18 @@ animation:pulse 3s infinite;
 width:340px;
 margin:10px auto;
 padding:25px;
-border-radius:20px;
+border-radius:18px;
 background:rgba(255,255,255,0.05);
 backdrop-filter:blur(25px);
 box-shadow:0 10px 40px rgba(0,0,0,0.6);
 }
 
-/* CARD */
+/* CARDS */
 .card{
 margin:20px auto;
 width:360px;
 padding:25px;
-border-radius:20px;
+border-radius:18px;
 background:rgba(255,255,255,0.05);
 backdrop-filter:blur(25px);
 box-shadow:0 10px 30px rgba(0,0,0,0.5);
@@ -72,21 +114,6 @@ transform:scale(1.05);
 box-shadow:0 0 10px rgba(59,130,246,0.7);
 }
 
-/* PROGRESS BAR */
-.progress{
-width:100%;
-height:12px;
-background:#1e293b;
-border-radius:10px;
-margin-top:10px;
-}
-
-.bar{
-height:12px;
-background:linear-gradient(90deg,#3b82f6,#60a5fa);
-border-radius:10px;
-}
-
 /* NAV */
 #nav{
 position:fixed;
@@ -98,16 +125,18 @@ padding:12px;
 
 /* STATS */
 #stats{
-font-size:14px;
-opacity:0.8;
-margin-bottom:10px;
+font-size:13px;
+opacity:0.7;
+margin-top:5px;
 }
 </style>
 </head>
 
 <body>
 
-<h2>🧠 Polymath System V4</h2>
+<h2>🧠 Polymath System</h2>
+
+<div id="rank-display"></div>
 
 <div id="core"></div>
 
@@ -122,8 +151,6 @@ margin-bottom:10px;
 </div>
 
 <script>
-
-// KEEP YOUR V3 LOGIC EXACTLY THE SAME BELOW
 
 // ---------------- RANKS ----------------
 const ranks=["Beginner","Apprentice","Practitioner","Advanced Calculator","Expert","Elite","Master","Grandmaster"];
@@ -152,12 +179,18 @@ return (avg()%1)*100;
 
 // ---------------- UI ----------------
 function updateUI(){
-document.getElementById("stats").innerHTML=`
-<b style="font-size:18px">${getRank()}</b><br>
-Next: ${ranks[Math.min(ranks.length-1,Math.floor(avg())+1)]}
+let currentRank=getRank();
+let nextRank=ranks[Math.min(ranks.length-1,Math.floor(avg())+1)];
+
+document.getElementById("rank-display").innerHTML=`
+<div class="rank-title">RANK</div>
+<div class="rank-name">${currentRank}</div>
 <div class="progress"><div class="bar" style="width:${progressPercent()}%"></div></div>
-Score: ${state.score} | Streak: ${state.streak}
+<div class="rank-next">Next: ${nextRank}</div>
 `;
+
+document.getElementById("stats").innerText=
+`Score: ${state.score} | Streak: ${state.streak}`;
 }
 updateUI();
 
@@ -170,7 +203,7 @@ center(`
 <h3>Start Training</h3>
 <button onclick="startAI()">🧠 AI Mode</button>
 <br><br>
-<h4>Manual</h4>
+<h4>Manual Mode</h4>
 ${ranks.map(r=>`<button onclick="startManual('${r}')">${r}</button>`).join("")}
 `);
 }
@@ -193,7 +226,7 @@ current=0;
 setTimeout(next,500);
 }
 
-// ---------------- AI ----------------
+// ---------------- AI ENGINE ----------------
 function generateAI(){
 let total=state.math+state.memory+state.focus;
 

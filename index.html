@@ -44,6 +44,18 @@
       transition: 0.3s;
     }
 
+    .thinking {
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      50% { opacity: 0.3; }
+    }
+
+    .core-active {
+      box-shadow: 0 0 60px rgba(59,130,246,1);
+    }
+
     .card {
       background: rgba(255,255,255,0.05);
       backdrop-filter: blur(20px);
@@ -80,7 +92,6 @@
     }
 
     #nav button { width: 12%; }
-
   </style>
 </head>
 
@@ -107,7 +118,7 @@
 
 <script>
 
-// ---------------- DATA ----------------
+// DATA
 let data = JSON.parse(localStorage.getItem("progress")) || {score:0,xp:0,skill:1};
 let weaknesses = JSON.parse(localStorage.getItem("weaknesses")) || {math:0,memory:0};
 let performance = JSON.parse(localStorage.getItem("performance")) || [];
@@ -128,93 +139,153 @@ function show(c){
 document.getElementById("container").innerHTML=`<div class="card">${c}</div>`;
 }
 
-// ---------------- CENTER DISPLAY ----------------
-function updateCenter(text){
-document.getElementById("center-display").innerText=text;
+// CENTER DISPLAY (AI BRAIN)
+function updateCenter(text, mode="normal"){
+let el=document.getElementById("center-display");
+let core=document.getElementById("core");
+
+el.innerText=text;
+
+el.classList.remove("thinking");
+core.classList.remove("core-active");
+
+if(mode==="thinking"){el.classList.add("thinking");}
+if(mode==="active"){core.classList.add("core-active");}
 }
 
-// ---------------- RECORD ----------------
+// RECORD
 function record(correct){
 performance.push(correct?1:0);
 if(performance.length>20)performance.shift();
 save();
 }
 
-// ---------------- MODULES ----------------
+// MODULES
 function tutorial(){
-updateCenter("Training Protocol Active");
+updateCenter("Training Protocol Active","active");
 show(`<h2>Protocol</h2><p>Pause → Identify → Choose → Visualize → Execute</p>`);
 }
 
+// COACH
 let coachProblem={};
+
 function coach(){
-updateCenter("Coaching Mode");
+updateCenter("AI Analyzing...","thinking");
+
+setTimeout(()=>{
+updateCenter("Coaching Mode","active");
+
 let n=Math.floor(Math.random()*90)+10;
 coachProblem={num:n,correct:n*11};
-show(`<h2>${n}×11</h2><input id="c"><button onclick="checkCoach()">Submit</button>`);
+
+show(`<h2>${n}×11</h2>
+<input id="c">
+<button onclick="checkCoach()">Submit</button>`);
+
+},600);
 }
 
 function checkCoach(){
 let v=parseInt(document.getElementById("c").value);
+
 if(v===coachProblem.correct){
 record(true);
-updateCenter("Correct Execution");
+updateCenter("Correct Execution","active");
 show(`<h2>Correct</h2>`);
 }else{
 record(false);
 weaknesses.math++; save();
-updateCenter("Error Detected");
+updateCenter("Error Detected","thinking");
 show(`<h2>${coachProblem.correct}</h2>`);
 }
 }
 
+// MEMORY
 function memory(){
-updateCenter("Memory Training");
+updateCenter("Generating Memory Set...","thinking");
+
+setTimeout(()=>{
+updateCenter("Memory Training","active");
+
 let pool=["dog","pizza","rocket","guitar","dragon"];
 let items=pool.sort(()=>0.5-Math.random()).slice(0,4);
-show(`<p>${items.join(", ")}</p><button onclick='recall(${JSON.stringify(items)})'>Start</button>`);
+
+show(`<p>${items.join(", ")}</p>
+<button onclick='recall(${JSON.stringify(items)})'>Start</button>`);
+
+},600);
 }
 
 function recall(items){
-updateCenter("Recall Phase");
+updateCenter("Recall Phase","active");
+
 let i=items.map((_,x)=>`<input id="i${x}"><br>`).join("");
+
 show(i+`<button onclick='checkMemory(${JSON.stringify(items)})'>Check</button>`);
 }
 
 function checkMemory(items){
 let c=0;
-items.forEach((it,i)=>{if(document.getElementById("i"+i).value===it)c++;});
+
+items.forEach((it,i)=>{
+if(document.getElementById("i"+i).value===it)c++;
+});
+
 record(c>items.length/2);
-if(c<items.length/2){weaknesses.memory++; save();}
+
+if(c<items.length/2){
+weaknesses.memory++;
+save();
+updateCenter("Memory Error","thinking");
+}else{
+updateCenter("Memory Success","active");
+}
+
 data.score+=c;
-updateCenter("Memory Evaluated");
+
 show(`<h2>${c}/${items.length}</h2>`);
 }
 
+// SPEED MATH
 function speedMath(){
-updateCenter("Speed Calculation");
+updateCenter("AI Generating Problem...","thinking");
+
+setTimeout(()=>{
+updateCenter("Speed Calculation","active");
+
 let n=Math.floor(Math.random()*90)+10;
 let correct=n*11;
-show(`<h2>${n}×11</h2><input id="a"><button onclick="checkMath(${correct})">Submit</button>`);
+
+show(`<h2>${n}×11</h2>
+<input id="a">
+<button onclick="checkMath(${correct})">Submit</button>`);
+
+},600);
 }
 
 function checkMath(correct){
 let v=parseInt(document.getElementById("a").value);
+
 if(v===correct){
 data.score++;
 record(true);
-updateCenter("Calculation Correct");
+updateCenter("Calculation Correct","active");
 }else{
 record(false);
-weaknesses.math++; save();
-updateCenter("Calculation Error");
+weaknesses.math++;
+save();
+updateCenter("Calculation Error","thinking");
 }
+
 show(`<h2>${v===correct?"Correct":"Answer "+correct}</h2>`);
 }
 
+// DASHBOARD
 function dashboard(){
-updateCenter("Performance Analytics");
-show(`<h2>Dashboard</h2><canvas id="chart"></canvas>
+updateCenter("Performance Analytics","active");
+
+show(`<h2>Dashboard</h2>
+<canvas id="chart"></canvas>
 <p>Math Errors: ${weaknesses.math}</p>
 <p>Memory Errors: ${weaknesses.memory}</p>`);
 
@@ -233,11 +304,18 @@ borderColor:"#3b82f6"
 },100);
 }
 
+// TRAINING ADVICE
 function trainingAdvice(){
-updateCenter("AI Recommendation");
+updateCenter("AI Recommendation","active");
+
 let advice="Balanced Training";
-if(weaknesses.math>weaknesses.memory) advice="Focus on Speed Math";
-else if(weaknesses.memory>weaknesses.math) advice="Focus on Memory";
+
+if(weaknesses.math>weaknesses.memory){
+advice="Focus on Speed Math";
+}else if(weaknesses.memory>weaknesses.math){
+advice="Focus on Memory";
+}
+
 show(`<h2>Advice</h2><p>${advice}</p>`);
 }
 

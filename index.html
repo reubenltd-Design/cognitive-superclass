@@ -6,59 +6,92 @@
   <style>
     body {
       margin: 0;
-      font-family: Segoe UI, sans-serif;
-      background: linear-gradient(160deg, #0b0f14, #121a24);
-      color: white;
+      font-family: -apple-system, Segoe UI, sans-serif;
+      background: radial-gradient(circle at top, #0f172a, #020617);
+      color: #e2e8f0;
       text-align: center;
+    }
+
+    h1 {
+      margin-top: 20px;
+      font-weight: 500;
+      letter-spacing: 1px;
     }
 
     #core {
-      width: 90px;
-      height: 90px;
+      width: 110px;
+      height: 110px;
       margin: 20px auto;
       border-radius: 50%;
-      background: #3aa0ff;
-      animation: breathe 3s infinite;
+      background: radial-gradient(circle, #3b82f6, #1d4ed8);
+      box-shadow: 0 0 40px rgba(59,130,246,0.6);
+      animation: pulse 3s infinite;
     }
 
-    @keyframes breathe {
-      50% { transform: scale(1.1); }
+    @keyframes pulse {
+      0%,100% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 1; }
     }
 
     .card {
-      background: #1a2733;
-      padding: 20px;
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(20px);
+      padding: 25px;
       margin: 20px auto;
-      width: 320px;
-      border-radius: 10px;
+      width: 340px;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      animation: fade 0.3s ease;
+    }
+
+    @keyframes fade {
+      from {opacity:0; transform:translateY(10px);}
+      to {opacity:1; transform:translateY(0);}
     }
 
     button {
-      padding: 10px;
+      padding: 10px 14px;
       margin: 5px;
-      border-radius: 6px;
+      border-radius: 10px;
       border: none;
-      background: #3aa0ff;
+      background: linear-gradient(135deg,#3b82f6,#2563eb);
       color: white;
       cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 10px rgba(59,130,246,0.7);
     }
 
     input {
-      padding: 10px;
+      padding: 12px;
       margin: 10px;
+      border-radius: 8px;
+      border: none;
       text-align: center;
+      font-size: 16px;
     }
 
     #nav {
       position: fixed;
       bottom: 0;
       width: 100%;
-      background: black;
-      padding: 10px;
+      background: rgba(2,6,23,0.9);
+      backdrop-filter: blur(10px);
+      padding: 12px;
+      border-top: 1px solid rgba(255,255,255,0.05);
     }
 
     #nav button {
-      width: 13%;
+      width: 12%;
+      font-size: 14px;
+    }
+
+    #stats {
+      opacity: 0.7;
+      font-size: 14px;
     }
   </style>
 </head>
@@ -84,212 +117,133 @@
 
 <script>
 
-// ---------------- DATA ----------------
-let data = JSON.parse(localStorage.getItem("progress")) || {
-  score: 0,
-  xp: 0,
-  skill: 1
-};
+// DATA
+let data = JSON.parse(localStorage.getItem("progress")) || {score:0,xp:0,skill:1};
+let weaknesses = JSON.parse(localStorage.getItem("weaknesses")) || {math:0,memory:0};
+let performance = {history:[]};
 
-let weaknesses = JSON.parse(localStorage.getItem("weaknesses")) || {
-  math: 0,
-  memory: 0
-};
-
-let performance = { history: [] };
-
-function save() {
-  localStorage.setItem("progress", JSON.stringify(data));
-  localStorage.setItem("weaknesses", JSON.stringify(weaknesses));
-  updateUI();
+function save(){
+localStorage.setItem("progress",JSON.stringify(data));
+localStorage.setItem("weaknesses",JSON.stringify(weaknesses));
+updateUI();
 }
 
-function updateUI() {
-  document.getElementById("stats").innerText =
-    `Level ${Math.floor(data.skill)} • Score ${data.score}`;
+function updateUI(){
+document.getElementById("stats").innerText=`Level ${Math.floor(data.skill)} • Score ${data.score}`;
 }
-
 updateUI();
 
-function show(content) {
-  document.getElementById("container").innerHTML =
-    `<div class="card">${content}</div>`;
+function show(c){document.getElementById("container").innerHTML=`<div class="card">${c}</div>`;}
+
+// AI
+function record(c,t=0){
+performance.history.push({correct:c,time:t});
+if(performance.history.length>10)performance.history.shift();
 }
 
-// ---------------- AI ----------------
-function record(correct, time=0) {
-  performance.history.push({correct,time});
-  if (performance.history.length > 10) performance.history.shift();
+function accuracy(){
+let c=performance.history.filter(x=>x.correct).length;
+return c/performance.history.length||0;
 }
 
-function accuracy() {
-  let c = performance.history.filter(x=>x.correct).length;
-  return c / performance.history.length || 0;
+function speed(){
+let t=performance.history.map(x=>x.time).filter(x=>x>0);
+if(!t.length)return 1;
+let avg=t.reduce((a,b)=>a+b,0)/t.length;
+return Math.max(0.5,Math.min(2,2000/avg));
 }
 
-function speed() {
-  let times = performance.history.map(x=>x.time).filter(t=>t>0);
-  if (!times.length) return 1;
-  let avg = times.reduce((a,b)=>a+b,0)/times.length;
-  return Math.max(0.5, Math.min(2, 2000/avg));
+function adapt(){
+let score=(accuracy()*0.7)+(speed()*0.3);
+if(score>0.75){data.skill+=0.3;data.xp+=10;}
+else if(score<0.4){data.skill-=0.2;}
+if(data.skill<1)data.skill=1;
+if(data.skill>10)data.skill=10;
+save();
 }
 
-function adapt() {
-  let score = (accuracy()*0.7)+(speed()*0.3);
-
-  if (score > 0.75) {
-    data.skill += 0.3;
-    data.xp += 10;
-  } else if (score < 0.4) {
-    data.skill -= 0.2;
-  }
-
-  if (data.skill < 1) data.skill = 1;
-  if (data.skill > 10) data.skill = 10;
-
-  save();
+// MODULES
+function tutorial(){
+show(`<h2>Protocol</h2><p>Pause → Identify → Choose → Visualize → Execute</p>`);
 }
 
-// ---------------- MODULES ----------------
-function tutorial() {
-  show(`<h2>Protocol</h2>
-  Pause → Identify → Choose → Visualize → Execute`);
+let coachProblem={};
+function coach(){
+let n=Math.floor(Math.random()*90)+10;
+coachProblem={num:n,correct:n*11};
+show(`<h2>${n}×11</h2><input id="c"><button onclick="checkCoach()">Submit</button>`);
 }
 
-// Coach
-let coachProblem = {};
-
-function coach() {
-  let num = Math.floor(Math.random()*90)+10;
-  coachProblem = { num: num, correct: num * 11 };
-
-  show(`
-    <h2>${num} × 11</h2>
-    <input id="c">
-    <button onclick="checkCoach()">Submit</button>
-  `);
+function checkCoach(){
+let v=parseInt(document.getElementById("c").value);
+if(v===coachProblem.correct){show(`<h2>Correct</h2>`);}
+else{
+weaknesses.math++; save();
+let d=coachProblem.num.toString().split('').map(Number);
+show(`<h2>${coachProblem.correct}</h2><p>${d[0]}(${d[0]}+${d[1]})${d[1]}</p>`);
+}
 }
 
-function checkCoach() {
-  let val = parseInt(document.getElementById("c").value);
-  let correct = coachProblem.correct;
-
-  if (val === correct) {
-    show(`<h2>Correct</h2>`);
-  } else {
-    weaknesses.math++;
-    save();
-
-    let d = coachProblem.num.toString().split('').map(Number);
-    show(`<h2>${correct}</h2>
-    <p>${d[0]} (${d[0]}+${d[1]}) ${d[1]}</p>`);
-  }
+function memory(){
+let pool=["dog","pizza","rocket","guitar","dragon","car"];
+let count=Math.floor(3+data.skill);
+let items=pool.sort(()=>0.5-Math.random()).slice(0,count);
+show(`<p>${items.join(", ")}</p><button onclick='recall(${JSON.stringify(items)})'>Start</button>`);
 }
 
-// Memory
-function memory() {
-  let pool = ["dog","pizza","rocket","guitar","dragon","car"];
-  let count = Math.floor(3 + data.skill);
-  let items = pool.sort(()=>0.5-Math.random()).slice(0,count);
-
-  show(`<p>${items.join(", ")}</p>
-  <button onclick='recall(${JSON.stringify(items)})'>Start</button>`);
+function recall(items){
+let i=items.map((_,x)=>`<input id="i${x}"><br>`).join("");
+show(i+`<button onclick='checkMemory(${JSON.stringify(items)})'>Check</button>`);
 }
 
-function recall(items) {
-  let inputs = items.map((_,i)=>`<input id="i${i}"><br>`).join("");
-
-  show(`${inputs}
-  <button onclick='checkMemory(${JSON.stringify(items)})'>Check</button>`);
+function checkMemory(items){
+let c=0;
+items.forEach((it,i)=>{if(document.getElementById("i"+i).value===it)c++;});
+if(c<items.length/2){weaknesses.memory++; save();}
+data.score+=c;
+record(c>items.length/2);
+adapt();
+show(`<h2>${c}/${items.length}</h2>`);
 }
 
-function checkMemory(items) {
-  let correct = 0;
-
-  items.forEach((item,i)=>{
-    if(document.getElementById("i"+i).value===item) correct++;
-  });
-
-  if (correct < items.length/2) {
-    weaknesses.memory++;
-  }
-
-  data.score += correct;
-  record(correct > items.length/2);
-  adapt();
-
-  show(`<h2>${correct}/${items.length}</h2>`);
+let start;
+function speedMath(){
+let n=Math.floor(Math.random()*90)+10;
+let correct=n*11;
+start=Date.now();
+show(`<h2>${n}×11</h2><input id="a"><button onclick="checkMath(${correct})">Submit</button>`);
 }
 
-// Speed Math
-let startTime;
-
-function speedMath() {
-  let num = Math.floor(Math.random()*90)+10;
-  let correct = num * 11;
-
-  startTime = Date.now();
-
-  show(`
-    <h2>${num} × 11</h2>
-    <input id="a">
-    <button onclick="checkMath(${correct})">Submit</button>
-  `);
+function checkMath(correct){
+let v=parseInt(document.getElementById("a").value);
+let t=Date.now()-start;
+if(v===correct){data.score++;record(true,t);}
+else{record(false,t);weaknesses.math++; save();}
+adapt();
+show(`<h2>${v===correct?"Correct":"Answer "+correct}</h2>`);
 }
 
-function checkMath(correct) {
-  let val = parseInt(document.getElementById("a").value);
-  let t = Date.now() - startTime;
-
-  if (val === correct) {
-    data.score++;
-    record(true,t);
-  } else {
-    record(false,t);
-    weaknesses.math++;
-  }
-
-  adapt();
-
-  show(`<h2>${val===correct?"Correct":"Answer "+correct}</h2>`);
+function dashboard(){
+show(`<h2>Dashboard</h2>
+<p>Level: ${Math.floor(data.skill)}</p>
+<p>Score: ${data.score}</p>
+<p>XP: ${data.xp}</p>
+<hr>
+<p>Math Errors: ${weaknesses.math}</p>
+<p>Memory Errors: ${weaknesses.memory}</p>
+<hr>
+<p>Accuracy: ${(accuracy()*100).toFixed(0)}%</p>
+<p>Speed: ${speed().toFixed(2)}</p>`);
 }
 
-// Dashboard
-function dashboard() {
-  show(`
-    <h2>Dashboard</h2>
-    <p>Level: ${Math.floor(data.skill)}</p>
-    <p>Score: ${data.score}</p>
-    <p>XP: ${data.xp}</p>
-
-    <hr>
-
-    <p>Math Errors: ${weaknesses.math}</p>
-    <p>Memory Errors: ${weaknesses.memory}</p>
-
-    <hr>
-
-    <p>Accuracy: ${(accuracy()*100).toFixed(0)}%</p>
-    <p>Speed: ${speed().toFixed(2)}</p>
-  `);
+function trainingAdvice(){
+let advice="Balanced training";
+if(weaknesses.math>weaknesses.memory) advice="Focus on Speed Math";
+else if(weaknesses.memory>weaknesses.math) advice="Focus on Memory";
+show(`<h2>Advice</h2><p>${advice}</p>`);
 }
 
-// Training Advice
-function trainingAdvice() {
-  let advice = "Balanced training";
-
-  if (weaknesses.math > weaknesses.memory) {
-    advice = "Focus on Speed Math";
-  } else if (weaknesses.memory > weaknesses.math) {
-    advice = "Focus on Memory";
-  }
-
-  show(`<h2>Advice</h2><p>${advice}</p>`);
-}
-
-function focus() {
-  show(`<h2>Focus Mode</h2>`);
-}
+function focus(){show(`<h2>Focus Mode</h2>`);}
 
 </script>
 

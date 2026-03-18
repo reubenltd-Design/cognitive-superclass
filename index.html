@@ -3,7 +3,6 @@
 <head>
   <title>Cognitive Superclass AI</title>
 
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
@@ -29,6 +28,20 @@
 
     @keyframes pulse {
       50% { transform: scale(1.15); }
+    }
+
+    #center-display {
+      width: 280px;
+      margin: 10px auto;
+      padding: 15px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(20px);
+      font-size: 16px;
+      letter-spacing: 1px;
+      color: #93c5fd;
+      box-shadow: 0 0 25px rgba(59,130,246,0.3);
+      transition: 0.3s;
     }
 
     .card {
@@ -67,13 +80,17 @@
     }
 
     #nav button { width: 12%; }
+
   </style>
 </head>
 
 <body>
 
 <h1>🧠 Cognitive Superclass</h1>
+
 <div id="core"></div>
+
+<div id="center-display">System Ready</div>
 
 <p id="stats"></p>
 
@@ -90,7 +107,7 @@
 
 <script>
 
-// DATA
+// ---------------- DATA ----------------
 let data = JSON.parse(localStorage.getItem("progress")) || {score:0,xp:0,skill:1};
 let weaknesses = JSON.parse(localStorage.getItem("weaknesses")) || {math:0,memory:0};
 let performance = JSON.parse(localStorage.getItem("performance")) || [];
@@ -107,23 +124,31 @@ document.getElementById("stats").innerText=`Level ${Math.floor(data.skill)} • 
 }
 updateUI();
 
-function show(c){document.getElementById("container").innerHTML=`<div class="card">${c}</div>`;}
+function show(c){
+document.getElementById("container").innerHTML=`<div class="card">${c}</div>`;
+}
 
-// RECORD PERFORMANCE
+// ---------------- CENTER DISPLAY ----------------
+function updateCenter(text){
+document.getElementById("center-display").innerText=text;
+}
+
+// ---------------- RECORD ----------------
 function record(correct){
-performance.push(correct ? 1 : 0);
-if(performance.length>20) performance.shift();
+performance.push(correct?1:0);
+if(performance.length>20)performance.shift();
 save();
 }
 
-// MODULES
+// ---------------- MODULES ----------------
 function tutorial(){
+updateCenter("Training Protocol Active");
 show(`<h2>Protocol</h2><p>Pause → Identify → Choose → Visualize → Execute</p>`);
 }
 
-// COACH
 let coachProblem={};
 function coach(){
+updateCenter("Coaching Mode");
 let n=Math.floor(Math.random()*90)+10;
 coachProblem={num:n,correct:n*11};
 show(`<h2>${n}×11</h2><input id="c"><button onclick="checkCoach()">Submit</button>`);
@@ -133,22 +158,25 @@ function checkCoach(){
 let v=parseInt(document.getElementById("c").value);
 if(v===coachProblem.correct){
 record(true);
+updateCenter("Correct Execution");
 show(`<h2>Correct</h2>`);
 }else{
 record(false);
 weaknesses.math++; save();
+updateCenter("Error Detected");
 show(`<h2>${coachProblem.correct}</h2>`);
 }
 }
 
-// MEMORY
 function memory(){
+updateCenter("Memory Training");
 let pool=["dog","pizza","rocket","guitar","dragon"];
 let items=pool.sort(()=>0.5-Math.random()).slice(0,4);
 show(`<p>${items.join(", ")}</p><button onclick='recall(${JSON.stringify(items)})'>Start</button>`);
 }
 
 function recall(items){
+updateCenter("Recall Phase");
 let i=items.map((_,x)=>`<input id="i${x}"><br>`).join("");
 show(i+`<button onclick='checkMemory(${JSON.stringify(items)})'>Check</button>`);
 }
@@ -159,11 +187,12 @@ items.forEach((it,i)=>{if(document.getElementById("i"+i).value===it)c++;});
 record(c>items.length/2);
 if(c<items.length/2){weaknesses.memory++; save();}
 data.score+=c;
+updateCenter("Memory Evaluated");
 show(`<h2>${c}/${items.length}</h2>`);
 }
 
-// MATH
 function speedMath(){
+updateCenter("Speed Calculation");
 let n=Math.floor(Math.random()*90)+10;
 let correct=n*11;
 show(`<h2>${n}×11</h2><input id="a"><button onclick="checkMath(${correct})">Submit</button>`);
@@ -171,15 +200,21 @@ show(`<h2>${n}×11</h2><input id="a"><button onclick="checkMath(${correct})">Sub
 
 function checkMath(correct){
 let v=parseInt(document.getElementById("a").value);
-if(v===correct){data.score++;record(true);}
-else{record(false);weaknesses.math++; save();}
+if(v===correct){
+data.score++;
+record(true);
+updateCenter("Calculation Correct");
+}else{
+record(false);
+weaknesses.math++; save();
+updateCenter("Calculation Error");
+}
 show(`<h2>${v===correct?"Correct":"Answer "+correct}</h2>`);
 }
 
-// DASHBOARD WITH CHART
 function dashboard(){
-show(`<h2>Dashboard</h2>
-<canvas id="chart"></canvas>
+updateCenter("Performance Analytics");
+show(`<h2>Dashboard</h2><canvas id="chart"></canvas>
 <p>Math Errors: ${weaknesses.math}</p>
 <p>Memory Errors: ${weaknesses.memory}</p>`);
 
@@ -191,19 +226,18 @@ labels:performance.map((_,i)=>i+1),
 datasets:[{
 label:"Accuracy",
 data:performance,
-borderColor:"#3b82f6",
-fill:false
+borderColor:"#3b82f6"
 }]
 }
 });
 },100);
 }
 
-// TRAINING ADVICE
 function trainingAdvice(){
-let advice="Balanced";
-if(weaknesses.math>weaknesses.memory) advice="Focus Math";
-else if(weaknesses.memory>weaknesses.math) advice="Focus Memory";
+updateCenter("AI Recommendation");
+let advice="Balanced Training";
+if(weaknesses.math>weaknesses.memory) advice="Focus on Speed Math";
+else if(weaknesses.memory>weaknesses.math) advice="Focus on Memory";
 show(`<h2>Advice</h2><p>${advice}</p>`);
 }
 

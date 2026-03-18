@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Polymath System V5</title>
+<title>Polymath System V6</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -9,24 +9,24 @@
 body{
 margin:0;
 font-family:-apple-system,Segoe UI;
-background:linear-gradient(160deg,#020617,#0f172a);
+background:linear-gradient(160deg,#0f172a,#1e293b,#0ea5e9);
 color:#e2e8f0;
 text-align:center;
 }
 
-/* RANK DISPLAY */
+/* RANK */
 #rank-display{margin-top:10px;}
-.rank-title{font-size:14px;opacity:0.6;letter-spacing:2px;}
-.rank-name{font-size:30px;font-weight:bold;color:#60a5fa;}
-.rank-next{font-size:13px;opacity:0.6;}
+.rank-title{font-size:14px;opacity:0.7;letter-spacing:2px;}
+.rank-name{font-size:32px;font-weight:bold;color:#38bdf8;}
+.rank-next{font-size:13px;opacity:0.7;}
 
 .progress{
 width:260px;height:10px;
-background:#1e293b;border-radius:10px;margin:8px auto;
+background:#334155;border-radius:10px;margin:8px auto;
 }
 .bar{
 height:10px;
-background:linear-gradient(90deg,#3b82f6,#60a5fa);
+background:linear-gradient(90deg,#38bdf8,#22d3ee);
 border-radius:10px;
 }
 
@@ -34,8 +34,8 @@ border-radius:10px;
 #core{
 width:120px;height:120px;margin:20px auto;
 border-radius:50%;
-background:radial-gradient(circle,#3b82f6,#1d4ed8);
-box-shadow:0 0 60px rgba(59,130,246,0.7);
+background:radial-gradient(circle,#38bdf8,#0ea5e9);
+box-shadow:0 0 70px rgba(56,189,248,0.8);
 animation:pulse 3s infinite;
 }
 @keyframes pulse{50%{transform:scale(1.2);}}
@@ -43,17 +43,17 @@ animation:pulse 3s infinite;
 /* PANELS */
 #center,.card{
 width:340px;margin:10px auto;padding:25px;
-border-radius:18px;
-background:rgba(255,255,255,0.05);
-backdrop-filter:blur(25px);
-box-shadow:0 10px 30px rgba(0,0,0,0.5);
+border-radius:20px;
+background:rgba(255,255,255,0.08);
+backdrop-filter:blur(20px);
+box-shadow:0 10px 30px rgba(0,0,0,0.4);
 }
 
 /* BUTTONS */
 button{
 padding:10px 14px;margin:6px;
 border-radius:10px;border:none;
-background:linear-gradient(135deg,#3b82f6,#2563eb);
+background:linear-gradient(135deg,#38bdf8,#0ea5e9);
 color:white;cursor:pointer;
 }
 button:hover{transform:scale(1.05);}
@@ -61,21 +61,27 @@ button:hover{transform:scale(1.05);}
 /* NAV */
 #nav{
 position:fixed;bottom:0;width:100%;
-background:rgba(2,6,23,0.9);padding:10px;
+background:rgba(15,23,42,0.9);padding:10px;
 }
 
-#stats{font-size:13px;opacity:0.7;}
+#stats{font-size:13px;opacity:0.8;}
+#coach{
+margin-top:10px;
+font-size:14px;
+color:#a5f3fc;
+}
 </style>
 </head>
 
 <body>
 
-<h2>🧠 Polymath System V5</h2>
+<h2>🧠 Polymath System V6</h2>
 
 <div id="rank-display"></div>
 <div id="core"></div>
 <div id="center"></div>
 <p id="stats"></p>
+<div id="coach"></div>
 <div id="main"></div>
 
 <div id="nav">
@@ -99,17 +105,10 @@ localStorage.setItem("state",JSON.stringify(state));
 updateUI();
 }
 
-function avg(){
-return (state.math+state.memory+state.focus)/3;
-}
-
-function getRank(){
-return ranks[Math.min(ranks.length-1,Math.floor(avg()))];
-}
-
-function progressPercent(){
-return (avg()%1)*100;
-}
+// ---------------- CALCULATIONS ----------------
+function avg(){return (state.math+state.memory+state.focus)/3;}
+function getRank(){return ranks[Math.min(ranks.length-1,Math.floor(avg()))];}
+function progressPercent(){return (avg()%1)*100;}
 
 // ---------------- UI ----------------
 function updateUI(){
@@ -125,11 +124,31 @@ document.getElementById("rank-display").innerHTML=`
 
 document.getElementById("stats").innerText=
 `Score: ${state.score} | Streak: ${state.streak}`;
+
+updateCoach();
 }
 updateUI();
 
 function center(t){document.getElementById("center").innerHTML=t;}
 function show(t){document.getElementById("main").innerHTML=`<div class="card">${t}</div>`;}
+
+// ---------------- AI COACH ----------------
+function updateCoach(){
+
+let weakest="math";
+let min=Math.min(state.math,state.memory,state.focus);
+
+if(state.memory===min) weakest="memory";
+if(state.focus===min) weakest="focus";
+
+let msg="";
+
+if(weakest==="math") msg="🧠 Coach: Focus on math speed. Patterns will unlock your growth.";
+if(weakest==="memory") msg="🧠 Coach: Strengthen memory. Visualization will amplify recall.";
+if(weakest==="focus") msg="🧠 Coach: Improve focus. Control attention = higher performance.";
+
+document.getElementById("coach").innerText=msg;
+}
 
 // ---------------- CONTROL ----------------
 function control(){
@@ -142,13 +161,12 @@ ${ranks.map(r=>`<button onclick="startManual('${r}')">${r}</button>`).join("")}
 }
 control();
 
-// ---------------- SMART AI ----------------
+// ---------------- AI ENGINE ----------------
 function generateAI(){
 
 let history=state.history.slice(-5);
 let recent=history.length?history.reduce((a,b)=>a+b,0)/history.length:avg();
 
-// inverse weighting (stronger for weaknesses)
 let mW=1/state.math;
 let memW=1/state.memory;
 let fW=1/state.focus;
@@ -156,7 +174,6 @@ let fW=1/state.focus;
 let total=mW+memW+fW;
 mW/=total; memW/=total; fW/=total;
 
-// dynamic length
 let difficulty=Math.max(1,Math.floor(recent*2));
 
 let plan=[];
@@ -293,7 +310,7 @@ labels:state.history.map((_,i)=>i+1),
 datasets:[{
 label:"Growth",
 data:state.history,
-borderColor:"#3b82f6"
+borderColor:"#38bdf8"
 }]
 }
 });

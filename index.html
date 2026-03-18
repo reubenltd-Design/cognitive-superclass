@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Polymath System Elite</title>
+<title>Polymath System V5</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -14,43 +14,16 @@ color:#e2e8f0;
 text-align:center;
 }
 
-/* TITLE */
-h2{
-margin-top:15px;
-opacity:0.9;
-}
-
 /* RANK DISPLAY */
-#rank-display{
-margin-top:10px;
-}
-
-.rank-title{
-font-size:14px;
-opacity:0.6;
-letter-spacing:2px;
-}
-
-.rank-name{
-font-size:30px;
-font-weight:bold;
-margin:5px 0;
-color:#60a5fa;
-}
-
-.rank-next{
-font-size:13px;
-opacity:0.6;
-}
+#rank-display{margin-top:10px;}
+.rank-title{font-size:14px;opacity:0.6;letter-spacing:2px;}
+.rank-name{font-size:30px;font-weight:bold;color:#60a5fa;}
+.rank-next{font-size:13px;opacity:0.6;}
 
 .progress{
-width:260px;
-height:10px;
-background:#1e293b;
-border-radius:10px;
-margin:8px auto;
+width:260px;height:10px;
+background:#1e293b;border-radius:10px;margin:8px auto;
 }
-
 .bar{
 height:10px;
 background:linear-gradient(90deg,#3b82f6,#60a5fa);
@@ -65,85 +38,44 @@ background:radial-gradient(circle,#3b82f6,#1d4ed8);
 box-shadow:0 0 60px rgba(59,130,246,0.7);
 animation:pulse 3s infinite;
 }
-@keyframes pulse{
-50%{transform:scale(1.2);}
-}
+@keyframes pulse{50%{transform:scale(1.2);}}
 
-/* CENTER PANEL */
-#center{
-width:340px;
-margin:10px auto;
-padding:25px;
-border-radius:18px;
-background:rgba(255,255,255,0.05);
-backdrop-filter:blur(25px);
-box-shadow:0 10px 40px rgba(0,0,0,0.6);
-}
-
-/* CARDS */
-.card{
-margin:20px auto;
-width:360px;
-padding:25px;
+/* PANELS */
+#center,.card{
+width:340px;margin:10px auto;padding:25px;
 border-radius:18px;
 background:rgba(255,255,255,0.05);
 backdrop-filter:blur(25px);
 box-shadow:0 10px 30px rgba(0,0,0,0.5);
-animation:fade 0.3s ease;
-}
-
-@keyframes fade{
-from{opacity:0;transform:translateY(10px);}
-to{opacity:1;}
 }
 
 /* BUTTONS */
 button{
-padding:10px 14px;
-margin:6px;
-border-radius:10px;
-border:none;
+padding:10px 14px;margin:6px;
+border-radius:10px;border:none;
 background:linear-gradient(135deg,#3b82f6,#2563eb);
-color:white;
-cursor:pointer;
-transition:0.2s;
+color:white;cursor:pointer;
 }
-
-button:hover{
-transform:scale(1.05);
-box-shadow:0 0 10px rgba(59,130,246,0.7);
-}
+button:hover{transform:scale(1.05);}
 
 /* NAV */
 #nav{
-position:fixed;
-bottom:0;
-width:100%;
-background:rgba(2,6,23,0.9);
-padding:12px;
+position:fixed;bottom:0;width:100%;
+background:rgba(2,6,23,0.9);padding:10px;
 }
 
-/* STATS */
-#stats{
-font-size:13px;
-opacity:0.7;
-margin-top:5px;
-}
+#stats{font-size:13px;opacity:0.7;}
 </style>
 </head>
 
 <body>
 
-<h2>🧠 Polymath System</h2>
+<h2>🧠 Polymath System V5</h2>
 
 <div id="rank-display"></div>
-
 <div id="core"></div>
-
 <div id="center"></div>
-
 <p id="stats"></p>
-
 <div id="main"></div>
 
 <div id="nav">
@@ -155,9 +87,11 @@ margin-top:5px;
 // ---------------- RANKS ----------------
 const ranks=["Beginner","Apprentice","Practitioner","Advanced Calculator","Expert","Elite","Master","Grandmaster"];
 
-// ---------------- DATA ----------------
+// ---------------- STATE ----------------
 let state=JSON.parse(localStorage.getItem("state"))||{
-math:1,memory:1,focus:1,score:0,streak:0,history:[],lastDate:null
+math:1,memory:1,focus:1,
+score:0,streak:0,
+history:[],lastDate:null
 };
 
 function save(){
@@ -179,14 +113,14 @@ return (avg()%1)*100;
 
 // ---------------- UI ----------------
 function updateUI(){
-let currentRank=getRank();
-let nextRank=ranks[Math.min(ranks.length-1,Math.floor(avg())+1)];
+let current=getRank();
+let next=ranks[Math.min(ranks.length-1,Math.floor(avg())+1)];
 
 document.getElementById("rank-display").innerHTML=`
 <div class="rank-title">RANK</div>
-<div class="rank-name">${currentRank}</div>
+<div class="rank-name">${current}</div>
 <div class="progress"><div class="bar" style="width:${progressPercent()}%"></div></div>
-<div class="rank-next">Next: ${nextRank}</div>
+<div class="rank-next">Next: ${next}</div>
 `;
 
 document.getElementById("stats").innerText=
@@ -203,45 +137,34 @@ center(`
 <h3>Start Training</h3>
 <button onclick="startAI()">🧠 AI Mode</button>
 <br><br>
-<h4>Manual Mode</h4>
 ${ranks.map(r=>`<button onclick="startManual('${r}')">${r}</button>`).join("")}
 `);
 }
 control();
 
-// ---------------- SESSION ----------------
-let session=[],current=0;
-
-function startAI(){
-center("AI Building Plan...");
-session=generateAI();
-current=0;
-setTimeout(next,500);
-}
-
-function startManual(rank){
-center("Manual: "+rank);
-session=generateManual(rank);
-current=0;
-setTimeout(next,500);
-}
-
-// ---------------- AI ENGINE ----------------
+// ---------------- SMART AI ----------------
 function generateAI(){
-let total=state.math+state.memory+state.focus;
 
-let weights={
-math:1-(state.math/total),
-memory:1-(state.memory/total),
-focus:1-(state.focus/total)
-};
+let history=state.history.slice(-5);
+let recent=history.length?history.reduce((a,b)=>a+b,0)/history.length:avg();
+
+// inverse weighting (stronger for weaknesses)
+let mW=1/state.math;
+let memW=1/state.memory;
+let fW=1/state.focus;
+
+let total=mW+memW+fW;
+mW/=total; memW/=total; fW/=total;
+
+// dynamic length
+let difficulty=Math.max(1,Math.floor(recent*2));
 
 let plan=[];
 
-for(let i=0;i<5;i++){
+for(let i=0;i<5+difficulty;i++){
 let r=Math.random();
-if(r<weights.math) plan.push("math");
-else if(r<weights.math+weights.memory) plan.push("memory");
+if(r<mW) plan.push("math");
+else if(r<mW+memW) plan.push("memory");
 else plan.push("focus");
 }
 
@@ -255,21 +178,32 @@ for(let i=0;i<lvl;i++){p.push("math","memory");}
 return p;
 }
 
-// ---------------- FLOW ----------------
-function next(){
-if(current>=session.length){
-completeSession();
-return;
+// ---------------- SESSION ----------------
+let session=[],current=0;
+
+function startAI(){
+center("AI Optimizing Training...");
+session=generateAI();
+current=0;
+setTimeout(next,500);
 }
 
-let t=session[current];
+function startManual(r){
+center("Manual: "+r);
+session=generateManual(r);
+current=0;
+setTimeout(next,500);
+}
 
+function next(){
+if(current>=session.length){complete();return;}
+let t=session[current];
 if(t==="math") math();
 if(t==="memory") memory();
 if(t==="focus") focus();
 }
 
-function completeSession(){
+function complete(){
 center("Session Complete 🔥");
 
 let today=new Date().toDateString();
@@ -289,10 +223,11 @@ control();
 function math(){
 center("Math");
 
-let n=Math.floor(Math.random()*50)+10;
+let base=Math.floor(state.math*15);
+let n=Math.floor(Math.random()*base)+10;
 let c=n*11;
 
-show(`<h3>${n}×11</h3>
+show(`<h3>${n} × 11</h3>
 <input id="a">
 <button onclick="checkMath(${c})">Submit</button>`);
 }
@@ -327,7 +262,6 @@ if(c>2){state.memory+=0.1;center("Memory Strong");}
 else{state.memory-=0.05;center("Memory Weak");}
 
 state.score+=c;
-
 current++;save();next();
 }
 
@@ -340,7 +274,7 @@ show(`<h3>Focus 10s</h3>
 
 function finishFocus(){
 state.focus+=0.1;
-center("Focus Done");
+center("Focus Complete");
 
 current++;save();next();
 }
@@ -357,7 +291,7 @@ type:"line",
 data:{
 labels:state.history.map((_,i)=>i+1),
 datasets:[{
-label:"Polymath Growth",
+label:"Growth",
 data:state.history,
 borderColor:"#3b82f6"
 }]

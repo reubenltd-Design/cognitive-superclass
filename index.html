@@ -29,7 +29,7 @@
       background: #1a2733;
       padding: 20px;
       margin: 20px auto;
-      width: 300px;
+      width: 320px;
       border-radius: 10px;
     }
 
@@ -58,7 +58,7 @@
     }
 
     #nav button {
-      width: 15%;
+      width: 13%;
     }
   </style>
 </head>
@@ -78,21 +78,29 @@
   <button onclick="memory()">🏠</button>
   <button onclick="speedMath()">⚡</button>
   <button onclick="focus()">⏱</button>
+  <button onclick="dashboard()">📊</button>
+  <button onclick="trainingAdvice()">🎯</button>
 </div>
 
 <script>
 
-// DATA
+// ---------------- DATA ----------------
 let data = JSON.parse(localStorage.getItem("progress")) || {
   score: 0,
   xp: 0,
   skill: 1
 };
 
+let weaknesses = JSON.parse(localStorage.getItem("weaknesses")) || {
+  math: 0,
+  memory: 0
+};
+
 let performance = { history: [] };
 
 function save() {
   localStorage.setItem("progress", JSON.stringify(data));
+  localStorage.setItem("weaknesses", JSON.stringify(weaknesses));
   updateUI();
 }
 
@@ -108,7 +116,7 @@ function show(content) {
     `<div class="card">${content}</div>`;
 }
 
-// AI tracking
+// ---------------- AI ----------------
 function record(correct, time=0) {
   performance.history.push({correct,time});
   if (performance.history.length > 10) performance.history.shift();
@@ -142,15 +150,13 @@ function adapt() {
   save();
 }
 
-// 📘 Tutorial
+// ---------------- MODULES ----------------
 function tutorial() {
-  show(`
-    <h2>Training Protocol</h2>
-    <p>Pause → Identify → Choose → Visualize → Execute</p>
-  `);
+  show(`<h2>Protocol</h2>
+  Pause → Identify → Choose → Visualize → Execute`);
 }
 
-// 🧠 Coach
+// Coach
 let coachProblem = {};
 
 function coach() {
@@ -171,31 +177,30 @@ function checkCoach() {
   if (val === correct) {
     show(`<h2>Correct</h2>`);
   } else {
+    weaknesses.math++;
+    save();
+
     let d = coachProblem.num.toString().split('').map(Number);
-    show(`
-      <h2>${correct}</h2>
-      <p>${d[0]} (${d[0]}+${d[1]}) ${d[1]}</p>
-    `);
+    show(`<h2>${correct}</h2>
+    <p>${d[0]} (${d[0]}+${d[1]}) ${d[1]}</p>`);
   }
 }
 
-// MEMORY
+// Memory
 function memory() {
-  let items = ["dog","pizza","rocket","guitar"];
-  show(`
-    <p>${items.join(", ")}</p>
-    <button onclick='recall(${JSON.stringify(items)})'>Start</button>
-  `);
+  let pool = ["dog","pizza","rocket","guitar","dragon","car"];
+  let count = Math.floor(3 + data.skill);
+  let items = pool.sort(()=>0.5-Math.random()).slice(0,count);
+
+  show(`<p>${items.join(", ")}</p>
+  <button onclick='recall(${JSON.stringify(items)})'>Start</button>`);
 }
 
 function recall(items) {
   let inputs = items.map((_,i)=>`<input id="i${i}"><br>`).join("");
 
-  show(`
-    <h2>Recall</h2>
-    ${inputs}
-    <button onclick='checkMemory(${JSON.stringify(items)})'>Check</button>
-  `);
+  show(`${inputs}
+  <button onclick='checkMemory(${JSON.stringify(items)})'>Check</button>`);
 }
 
 function checkMemory(items) {
@@ -205,10 +210,18 @@ function checkMemory(items) {
     if(document.getElementById("i"+i).value===item) correct++;
   });
 
+  if (correct < items.length/2) {
+    weaknesses.memory++;
+  }
+
+  data.score += correct;
+  record(correct > items.length/2);
+  adapt();
+
   show(`<h2>${correct}/${items.length}</h2>`);
 }
 
-// SPEED MATH
+// Speed Math
 let startTime;
 
 function speedMath() {
@@ -233,6 +246,7 @@ function checkMath(correct) {
     record(true,t);
   } else {
     record(false,t);
+    weaknesses.math++;
   }
 
   adapt();
@@ -240,7 +254,39 @@ function checkMath(correct) {
   show(`<h2>${val===correct?"Correct":"Answer "+correct}</h2>`);
 }
 
-// FOCUS
+// Dashboard
+function dashboard() {
+  show(`
+    <h2>Dashboard</h2>
+    <p>Level: ${Math.floor(data.skill)}</p>
+    <p>Score: ${data.score}</p>
+    <p>XP: ${data.xp}</p>
+
+    <hr>
+
+    <p>Math Errors: ${weaknesses.math}</p>
+    <p>Memory Errors: ${weaknesses.memory}</p>
+
+    <hr>
+
+    <p>Accuracy: ${(accuracy()*100).toFixed(0)}%</p>
+    <p>Speed: ${speed().toFixed(2)}</p>
+  `);
+}
+
+// Training Advice
+function trainingAdvice() {
+  let advice = "Balanced training";
+
+  if (weaknesses.math > weaknesses.memory) {
+    advice = "Focus on Speed Math";
+  } else if (weaknesses.memory > weaknesses.math) {
+    advice = "Focus on Memory";
+  }
+
+  show(`<h2>Advice</h2><p>${advice}</p>`);
+}
+
 function focus() {
   show(`<h2>Focus Mode</h2>`);
 }

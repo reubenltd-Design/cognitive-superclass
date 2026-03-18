@@ -1,85 +1,59 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Cognitive Superclass AI</title>
-
+  <title>Polymath Cognitive System</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
     body {
       margin: 0;
-      font-family: -apple-system, Segoe UI, sans-serif;
+      font-family: -apple-system, Segoe UI;
       background: radial-gradient(circle at top, #0f172a, #020617);
-      color: #e2e8f0;
+      color: white;
       text-align: center;
     }
-
-    h1 { margin-top: 20px; }
 
     #core {
       width: 110px;
       height: 110px;
       margin: 20px auto;
       border-radius: 50%;
-      background: radial-gradient(circle, #3b82f6, #1d4ed8);
+      background: radial-gradient(circle,#3b82f6,#1d4ed8);
       box-shadow: 0 0 40px rgba(59,130,246,0.6);
       animation: pulse 3s infinite;
     }
 
-    @keyframes pulse {
-      50% { transform: scale(1.15); }
-    }
+    @keyframes pulse {50%{transform:scale(1.15)}}
 
-    #center-display {
-      width: 280px;
+    #center {
       margin: 10px auto;
+      width: 280px;
       padding: 15px;
-      border-radius: 14px;
+      border-radius: 12px;
       background: rgba(255,255,255,0.05);
-      backdrop-filter: blur(20px);
-      font-size: 16px;
-      letter-spacing: 1px;
-      color: #93c5fd;
-      box-shadow: 0 0 25px rgba(59,130,246,0.3);
-      transition: 0.3s;
-    }
-
-    .thinking {
-      animation: blink 1s infinite;
-    }
-
-    @keyframes blink {
-      50% { opacity: 0.3; }
-    }
-
-    .core-active {
-      box-shadow: 0 0 60px rgba(59,130,246,1);
     }
 
     .card {
-      background: rgba(255,255,255,0.05);
-      backdrop-filter: blur(20px);
-      padding: 25px;
       margin: 20px auto;
-      width: 350px;
-      border-radius: 16px;
+      width: 340px;
+      padding: 20px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.05);
     }
 
     button {
       padding: 10px;
       margin: 5px;
-      border-radius: 10px;
+      border-radius: 8px;
       border: none;
-      background: linear-gradient(135deg,#3b82f6,#2563eb);
+      background: #3b82f6;
       color: white;
       cursor: pointer;
     }
 
     input {
-      padding: 12px;
+      padding: 10px;
       margin: 10px;
-      border-radius: 8px;
-      border: none;
       text-align: center;
     }
 
@@ -87,236 +61,187 @@
       position: fixed;
       bottom: 0;
       width: 100%;
-      background: rgba(2,6,23,0.9);
+      background: black;
       padding: 10px;
     }
-
-    #nav button { width: 12%; }
   </style>
 </head>
 
 <body>
 
-<h1>🧠 Cognitive Superclass</h1>
+<h2>🧠 Polymath System</h2>
 
 <div id="core"></div>
-
-<div id="center-display">System Ready</div>
-
+<div id="center">System Ready</div>
 <p id="stats"></p>
 
-<div id="container"></div>
+<div id="main"></div>
 
 <div id="nav">
-  <button onclick="tutorial()">📘</button>
-  <button onclick="coach()">🧠</button>
-  <button onclick="memory()">🏠</button>
-  <button onclick="speedMath()">⚡</button>
+  <button onclick="startSession()">🚀</button>
   <button onclick="dashboard()">📊</button>
-  <button onclick="trainingAdvice()">🎯</button>
 </div>
 
 <script>
 
-// DATA
-let data = JSON.parse(localStorage.getItem("progress")) || {score:0,xp:0,skill:1};
-let weaknesses = JSON.parse(localStorage.getItem("weaknesses")) || {math:0,memory:0};
-let performance = JSON.parse(localStorage.getItem("performance")) || [];
+// ---------------- DATA ----------------
+let state = JSON.parse(localStorage.getItem("state")) || {
+  math:1,
+  memory:1,
+  focus:1,
+  score:0,
+  streak:0
+};
 
 function save(){
-localStorage.setItem("progress",JSON.stringify(data));
-localStorage.setItem("weaknesses",JSON.stringify(weaknesses));
-localStorage.setItem("performance",JSON.stringify(performance));
-updateUI();
+  localStorage.setItem("state",JSON.stringify(state));
+  updateUI();
 }
 
 function updateUI(){
-document.getElementById("stats").innerText=`Level ${Math.floor(data.skill)} • Score ${data.score}`;
+  let polymath = ((state.math+state.memory+state.focus)/3).toFixed(1);
+  document.getElementById("stats").innerText =
+  `Polymath: ${polymath} | Score: ${state.score}`;
 }
+
 updateUI();
 
-function show(c){
-document.getElementById("container").innerHTML=`<div class="card">${c}</div>`;
+function center(t){document.getElementById("center").innerText=t;}
+function show(t){document.getElementById("main").innerHTML=`<div class="card">${t}</div>`;}
+
+// ---------------- SESSION ENGINE ----------------
+let session = [];
+let current = 0;
+
+function startSession(){
+  center("Generating Training...");
+  
+  session = generatePlan();
+  current = 0;
+
+  setTimeout(()=>{
+    nextTask();
+  },500);
 }
 
-// CENTER DISPLAY (AI BRAIN)
-function updateCenter(text, mode="normal"){
-let el=document.getElementById("center-display");
-let core=document.getElementById("core");
+function generatePlan(){
+  let plan = [];
 
-el.innerText=text;
+  if(state.math < state.memory) plan.push("math");
+  if(state.memory < state.math) plan.push("memory");
 
-el.classList.remove("thinking");
-core.classList.remove("core-active");
+  plan.push("focus");
+  plan.push("math");
+  plan.push("memory");
 
-if(mode==="thinking"){el.classList.add("thinking");}
-if(mode==="active"){core.classList.add("core-active");}
+  return plan;
 }
 
-// RECORD
-function record(correct){
-performance.push(correct?1:0);
-if(performance.length>20)performance.shift();
-save();
+function nextTask(){
+  if(current >= session.length){
+    center("Session Complete");
+    state.streak++;
+    save();
+    return;
+  }
+
+  let task = session[current];
+
+  if(task==="math") speedMath();
+  if(task==="memory") memory();
+  if(task==="focus") focus();
 }
 
-// MODULES
-function tutorial(){
-updateCenter("Training Protocol Active","active");
-show(`<h2>Protocol</h2><p>Pause → Identify → Choose → Visualize → Execute</p>`);
-}
-
-// COACH
-let coachProblem={};
-
-function coach(){
-updateCenter("AI Analyzing...","thinking");
-
-setTimeout(()=>{
-updateCenter("Coaching Mode","active");
-
-let n=Math.floor(Math.random()*90)+10;
-coachProblem={num:n,correct:n*11};
-
-show(`<h2>${n}×11</h2>
-<input id="c">
-<button onclick="checkCoach()">Submit</button>`);
-
-},600);
-}
-
-function checkCoach(){
-let v=parseInt(document.getElementById("c").value);
-
-if(v===coachProblem.correct){
-record(true);
-updateCenter("Correct Execution","active");
-show(`<h2>Correct</h2>`);
-}else{
-record(false);
-weaknesses.math++; save();
-updateCenter("Error Detected","thinking");
-show(`<h2>${coachProblem.correct}</h2>`);
-}
-}
-
-// MEMORY
-function memory(){
-updateCenter("Generating Memory Set...","thinking");
-
-setTimeout(()=>{
-updateCenter("Memory Training","active");
-
-let pool=["dog","pizza","rocket","guitar","dragon"];
-let items=pool.sort(()=>0.5-Math.random()).slice(0,4);
-
-show(`<p>${items.join(", ")}</p>
-<button onclick='recall(${JSON.stringify(items)})'>Start</button>`);
-
-},600);
-}
-
-function recall(items){
-updateCenter("Recall Phase","active");
-
-let i=items.map((_,x)=>`<input id="i${x}"><br>`).join("");
-
-show(i+`<button onclick='checkMemory(${JSON.stringify(items)})'>Check</button>`);
-}
-
-function checkMemory(items){
-let c=0;
-
-items.forEach((it,i)=>{
-if(document.getElementById("i"+i).value===it)c++;
-});
-
-record(c>items.length/2);
-
-if(c<items.length/2){
-weaknesses.memory++;
-save();
-updateCenter("Memory Error","thinking");
-}else{
-updateCenter("Memory Success","active");
-}
-
-data.score+=c;
-
-show(`<h2>${c}/${items.length}</h2>`);
-}
-
-// SPEED MATH
+// ---------------- MATH ----------------
 function speedMath(){
-updateCenter("AI Generating Problem...","thinking");
+  center("Math Training");
 
-setTimeout(()=>{
-updateCenter("Speed Calculation","active");
+  let n=Math.floor(Math.random()*50)+10;
+  let correct=n*11;
 
-let n=Math.floor(Math.random()*90)+10;
-let correct=n*11;
-
-show(`<h2>${n}×11</h2>
-<input id="a">
-<button onclick="checkMath(${correct})">Submit</button>`);
-
-},600);
+  show(`<h3>${n} × 11</h3>
+  <input id="a">
+  <button onclick="checkMath(${correct})">Submit</button>`);
 }
 
 function checkMath(correct){
-let v=parseInt(document.getElementById("a").value);
+  let v=parseInt(document.getElementById("a").value);
 
-if(v===correct){
-data.score++;
-record(true);
-updateCenter("Calculation Correct","active");
-}else{
-record(false);
-weaknesses.math++;
-save();
-updateCenter("Calculation Error","thinking");
+  if(v===correct){
+    state.math+=0.1;
+    state.score++;
+    center("Correct");
+  } else {
+    state.math-=0.05;
+    center("Error");
+  }
+
+  current++;
+  save();
+  nextTask();
 }
 
-show(`<h2>${v===correct?"Correct":"Answer "+correct}</h2>`);
+// ---------------- MEMORY ----------------
+function memory(){
+  center("Memory Training");
+
+  let items=["dog","pizza","rocket","guitar"];
+  show(`<p>${items.join(", ")}</p>
+  <button onclick='recall(${JSON.stringify(items)})'>Start</button>`);
 }
 
-// DASHBOARD
+function recall(items){
+  let i=items.map((_,x)=>`<input id="i${x}"><br>`).join("");
+  show(i+`<button onclick='checkMemory(${JSON.stringify(items)})'>Check</button>`);
+}
+
+function checkMemory(items){
+  let c=0;
+  items.forEach((it,i)=>{
+    if(document.getElementById("i"+i).value===it)c++;
+  });
+
+  if(c>2){
+    state.memory+=0.1;
+    center("Memory Success");
+  } else {
+    state.memory-=0.05;
+    center("Memory Weak");
+  }
+
+  state.score+=c;
+  current++;
+  save();
+  nextTask();
+}
+
+// ---------------- FOCUS ----------------
+function focus(){
+  center("Focus Training");
+
+  show(`<h3>Focus for 10 seconds</h3>
+  <button onclick="finishFocus()">Done</button>`);
+}
+
+function finishFocus(){
+  state.focus+=0.1;
+  center("Focus Complete");
+  current++;
+  save();
+  nextTask();
+}
+
+// ---------------- DASHBOARD ----------------
 function dashboard(){
-updateCenter("Performance Analytics","active");
+  center("Performance");
 
-show(`<h2>Dashboard</h2>
-<canvas id="chart"></canvas>
-<p>Math Errors: ${weaknesses.math}</p>
-<p>Memory Errors: ${weaknesses.memory}</p>`);
-
-setTimeout(()=>{
-new Chart(document.getElementById("chart"),{
-type:"line",
-data:{
-labels:performance.map((_,i)=>i+1),
-datasets:[{
-label:"Accuracy",
-data:performance,
-borderColor:"#3b82f6"
-}]
-}
-});
-},100);
-}
-
-// TRAINING ADVICE
-function trainingAdvice(){
-updateCenter("AI Recommendation","active");
-
-let advice="Balanced Training";
-
-if(weaknesses.math>weaknesses.memory){
-advice="Focus on Speed Math";
-}else if(weaknesses.memory>weaknesses.math){
-advice="Focus on Memory";
-}
-
-show(`<h2>Advice</h2><p>${advice}</p>`);
+  show(`
+    <h3>Stats</h3>
+    <p>Math: ${state.math.toFixed(2)}</p>
+    <p>Memory: ${state.memory.toFixed(2)}</p>
+    <p>Focus: ${state.focus.toFixed(2)}</p>
+    <p>Streak: ${state.streak}</p>
+  `);
 }
 
 </script>

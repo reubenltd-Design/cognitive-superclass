@@ -1,290 +1,298 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Polymath Cognitive System V2</title>
+<title>Polymath System V3</title>
 
-  <style>
-    body {
-      margin:0;
-      font-family:-apple-system,Segoe UI;
-      background:radial-gradient(circle at top,#0f172a,#020617);
-      color:white;
-      text-align:center;
-    }
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    #core{
-      width:110px;height:110px;margin:20px auto;
-      border-radius:50%;
-      background:radial-gradient(circle,#3b82f6,#1d4ed8);
-      box-shadow:0 0 40px rgba(59,130,246,0.6);
-      animation:pulse 3s infinite;
-    }
+<style>
+body{
+margin:0;
+font-family:-apple-system,Segoe UI;
+background:radial-gradient(circle at top,#0f172a,#020617);
+color:white;
+text-align:center;
+}
 
-    @keyframes pulse{50%{transform:scale(1.15)}}
+#core{
+width:110px;height:110px;margin:20px auto;
+border-radius:50%;
+background:radial-gradient(circle,#3b82f6,#1d4ed8);
+box-shadow:0 0 40px rgba(59,130,246,0.6);
+animation:pulse 3s infinite;
+}
+@keyframes pulse{50%{transform:scale(1.15)}}
 
-    #center{
-      width:300px;
-      margin:10px auto;
-      padding:20px;
-      border-radius:14px;
-      background:rgba(255,255,255,0.05);
-    }
+#center{
+width:320px;
+margin:10px auto;
+padding:20px;
+border-radius:14px;
+background:rgba(255,255,255,0.05);
+}
 
-    .card{
-      margin:20px auto;
-      width:340px;
-      padding:20px;
-      border-radius:12px;
-      background:rgba(255,255,255,0.05);
-    }
+.card{
+margin:20px auto;
+width:350px;
+padding:20px;
+border-radius:12px;
+background:rgba(255,255,255,0.05);
+}
 
-    button{
-      padding:10px;
-      margin:5px;
-      border-radius:8px;
-      border:none;
-      background:#3b82f6;
-      color:white;
-      cursor:pointer;
-    }
+button{
+padding:10px;margin:5px;
+border-radius:8px;border:none;
+background:#3b82f6;color:white;
+cursor:pointer;
+}
 
-    input{
-      padding:10px;
-      margin:10px;
-      text-align:center;
-    }
+.progress{
+width:100%;
+height:10px;
+background:#222;
+border-radius:10px;
+margin-top:10px;
+}
 
-    #nav{
-      position:fixed;
-      bottom:0;
-      width:100%;
-      background:black;
-      padding:10px;
-    }
-  </style>
+.bar{
+height:10px;
+background:#3b82f6;
+border-radius:10px;
+}
+
+#nav{
+position:fixed;
+bottom:0;width:100%;
+background:black;padding:10px;
+}
+</style>
 </head>
 
 <body>
 
-<h2>🧠 Polymath System V2</h2>
+<h2>🧠 Polymath System V3</h2>
 
 <div id="core"></div>
 
 <div id="center"></div>
-
 <p id="stats"></p>
 
 <div id="main"></div>
 
 <div id="nav">
-  <button onclick="showDashboard()">📊</button>
+<button onclick="dashboard()">📊</button>
 </div>
 
 <script>
 
-// ---------------- RANK SYSTEM ----------------
-const ranks = [
-"Beginner","Apprentice","Practitioner",
-"Advanced Calculator","Expert","Elite","Master","Grandmaster"
-];
+// ---------------- RANKS ----------------
+const ranks=["Beginner","Apprentice","Practitioner","Advanced Calculator","Expert","Elite","Master","Grandmaster"];
 
 // ---------------- DATA ----------------
-let state = JSON.parse(localStorage.getItem("state")) || {
-  math:1,
-  memory:1,
-  focus:1,
-  score:0,
-  streak:0
+let state=JSON.parse(localStorage.getItem("state"))||{
+math:1,memory:1,focus:1,score:0,streak:0,history:[],lastDate:null
 };
 
 function save(){
-  localStorage.setItem("state",JSON.stringify(state));
-  updateUI();
+localStorage.setItem("state",JSON.stringify(state));
+updateUI();
+}
+
+function avg(){
+return (state.math+state.memory+state.focus)/3;
 }
 
 function getRank(){
-  let avg=(state.math+state.memory+state.focus)/3;
-  return ranks[Math.min(ranks.length-1,Math.floor(avg))];
+return ranks[Math.min(ranks.length-1,Math.floor(avg()))];
 }
 
+function progressPercent(){
+return (avg()%1)*100;
+}
+
+// ---------------- UI ----------------
 function updateUI(){
-  document.getElementById("stats").innerText =
-  `${getRank()} | Score ${state.score}`;
+document.getElementById("stats").innerHTML=`
+<b>${getRank()}</b><br>
+Next: ${ranks[Math.min(ranks.length-1,Math.floor(avg())+1)]}
+<div class="progress"><div class="bar" style="width:${progressPercent()}%"></div></div>
+Score: ${state.score} | Streak: ${state.streak}
+`;
 }
 updateUI();
 
 function center(t){document.getElementById("center").innerHTML=t;}
 function show(t){document.getElementById("main").innerHTML=`<div class="card">${t}</div>`;}
 
-// ---------------- CONTROL PANEL ----------------
-function showControl(){
+// ---------------- CONTROL ----------------
+function control(){
 center(`
 <h3>Start Training</h3>
-
 <button onclick="startAI()">🧠 AI Mode</button>
 <br><br>
-
-<h4>Manual Mode</h4>
+<h4>Manual</h4>
 ${ranks.map(r=>`<button onclick="startManual('${r}')">${r}</button>`).join("")}
 `);
 }
-
-showControl();
+control();
 
 // ---------------- SESSION ----------------
-let session=[];
-let current=0;
+let session=[],current=0;
 
 function startAI(){
-center("AI Generating Training...");
-session=generateAIPlan();
+center("AI Building Plan...");
+session=generateAI();
 current=0;
-setTimeout(nextTask,500);
+setTimeout(next,500);
 }
 
 function startManual(rank){
-center("Manual Mode: "+rank);
-session=generateManualPlan(rank);
+center("Manual: "+rank);
+session=generateManual(rank);
 current=0;
-setTimeout(nextTask,500);
+setTimeout(next,500);
 }
 
-// ---------------- AI ENGINE ----------------
-function generateAIPlan(){
+// ---------------- SMART AI ----------------
+function generateAI(){
+let total=state.math+state.memory+state.focus;
+
+let weights={
+math:1-(state.math/total),
+memory:1-(state.memory/total),
+focus:1-(state.focus/total)
+};
+
 let plan=[];
 
-if(state.math < state.memory) plan.push("math");
-if(state.memory < state.focus) plan.push("memory");
-
-plan.push("focus","math","memory");
+for(let i=0;i<5;i++){
+let r=Math.random();
+if(r<weights.math) plan.push("math");
+else if(r<weights.math+weights.memory) plan.push("memory");
+else plan.push("focus");
+}
 
 return plan;
 }
 
-function generateManualPlan(rank){
-let difficulty = ranks.indexOf(rank)+1;
-
-let plan=[];
-for(let i=0;i<difficulty;i++){
-plan.push("math","memory");
+function generateManual(rank){
+let lvl=ranks.indexOf(rank)+1;
+let p=[];
+for(let i=0;i<lvl;i++){p.push("math","memory");}
+return p;
 }
 
-return plan;
-}
-
-// ---------------- TASK FLOW ----------------
-function nextTask(){
+// ---------------- FLOW ----------------
+function next(){
 if(current>=session.length){
-center("Session Complete 🔥");
-state.streak++;
-save();
-showControl();
+completeSession();
 return;
 }
 
 let t=session[current];
 
-if(t==="math") speedMath();
+if(t==="math") math();
 if(t==="memory") memory();
 if(t==="focus") focus();
 }
 
-// ---------------- MATH ----------------
-function speedMath(){
-center("Math Training");
+function completeSession(){
+center("Session Complete 🔥");
 
-let base=Math.floor(state.math*10);
-let n=Math.floor(Math.random()*base)+10;
-let correct=n*11;
-
-show(`<h3>${n} × 11</h3>
-<input id="a">
-<button onclick="checkMath(${correct})">Submit</button>`);
+let today=new Date().toDateString();
+if(state.lastDate!==today){
+state.streak++;
+state.lastDate=today;
 }
 
-function checkMath(correct){
+state.history.push(avg());
+if(state.history.length>20) state.history.shift();
+
+save();
+control();
+}
+
+// ---------------- TASKS ----------------
+function math(){
+center("Math");
+
+let n=Math.floor(Math.random()*50)+10;
+let c=n*11;
+
+show(`<h3>${n}×11</h3>
+<input id="a">
+<button onclick="checkMath(${c})">Submit</button>`);
+}
+
+function checkMath(c){
 let v=parseInt(document.getElementById("a").value);
 
-if(v===correct){
-state.math+=0.1;
-state.score++;
-center("Correct");
-}else{
-state.math-=0.05;
-center("Error");
+if(v===c){state.math+=0.1;state.score++;center("Correct");}
+else{state.math-=0.05;center("Error");}
+
+current++;save();next();
 }
 
-current++;
-save();
-nextTask();
-}
-
-// ---------------- MEMORY ----------------
 function memory(){
-center("Memory Training");
+center("Memory");
 
-let count=Math.floor(state.memory)+3;
-let pool=["dog","pizza","rocket","guitar","dragon","car"];
-let items=pool.sort(()=>0.5-Math.random()).slice(0,count);
-
+let items=["dog","pizza","rocket","guitar"];
 show(`<p>${items.join(", ")}</p>
 <button onclick='recall(${JSON.stringify(items)})'>Start</button>`);
 }
 
 function recall(items){
-let inputs=items.map((_,i)=>`<input id="i${i}"><br>`).join("");
-show(inputs+`<button onclick='checkMemory(${JSON.stringify(items)})'>Check</button>`);
+let i=items.map((_,x)=>`<input id="i${x}"><br>`).join("");
+show(i+`<button onclick='checkMemory(${JSON.stringify(items)})'>Check</button>`);
 }
 
 function checkMemory(items){
 let c=0;
+items.forEach((it,i)=>{if(document.getElementById("i"+i).value===it)c++;});
 
-items.forEach((it,i)=>{
-if(document.getElementById("i"+i).value===it)c++;
-});
-
-if(c>items.length/2){
-state.memory+=0.1;
-center("Memory Success");
-}else{
-state.memory-=0.05;
-center("Memory Weak");
-}
+if(c>2){state.memory+=0.1;center("Memory Strong");}
+else{state.memory-=0.05;center("Memory Weak");}
 
 state.score+=c;
 
-current++;
-save();
-nextTask();
+current++;save();next();
 }
 
-// ---------------- FOCUS ----------------
 function focus(){
-center("Focus Training");
+center("Focus");
 
-show(`<h3>Focus 10 seconds</h3>
+show(`<h3>Focus 10s</h3>
 <button onclick="finishFocus()">Done</button>`);
 }
 
 function finishFocus(){
 state.focus+=0.1;
-center("Focus Complete");
+center("Focus Done");
 
-current++;
-save();
-nextTask();
+current++;save();next();
 }
 
 // ---------------- DASHBOARD ----------------
-function showDashboard(){
-center("Performance");
+function dashboard(){
+center("Progress");
 
 show(`
-<p>Math: ${state.math.toFixed(2)}</p>
-<p>Memory: ${state.memory.toFixed(2)}</p>
-<p>Focus: ${state.focus.toFixed(2)}</p>
-<p>Streak: ${state.streak}</p>
+<canvas id="chart"></canvas>
 `);
+
+setTimeout(()=>{
+new Chart(document.getElementById("chart"),{
+type:"line",
+data:{
+labels:state.history.map((_,i)=>i+1),
+datasets:[{
+label:"Polymath Growth",
+data:state.history,
+borderColor:"#3b82f6"
+}]
+}
+});
+},100);
 }
 
 </script>

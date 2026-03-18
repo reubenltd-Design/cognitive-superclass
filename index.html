@@ -3,6 +3,9 @@
 <head>
   <title>Cognitive Superclass AI</title>
 
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
     body {
       margin: 0;
@@ -12,11 +15,7 @@
       text-align: center;
     }
 
-    h1 {
-      margin-top: 20px;
-      font-weight: 500;
-      letter-spacing: 1px;
-    }
+    h1 { margin-top: 20px; }
 
     #core {
       width: 110px;
@@ -29,8 +28,7 @@
     }
 
     @keyframes pulse {
-      0%,100% { transform: scale(1); opacity: 0.8; }
-      50% { transform: scale(1.15); opacity: 1; }
+      50% { transform: scale(1.15); }
     }
 
     .card {
@@ -38,31 +36,18 @@
       backdrop-filter: blur(20px);
       padding: 25px;
       margin: 20px auto;
-      width: 340px;
+      width: 350px;
       border-radius: 16px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-      animation: fade 0.3s ease;
-    }
-
-    @keyframes fade {
-      from {opacity:0; transform:translateY(10px);}
-      to {opacity:1; transform:translateY(0);}
     }
 
     button {
-      padding: 10px 14px;
+      padding: 10px;
       margin: 5px;
       border-radius: 10px;
       border: none;
       background: linear-gradient(135deg,#3b82f6,#2563eb);
       color: white;
       cursor: pointer;
-      transition: 0.2s;
-    }
-
-    button:hover {
-      transform: scale(1.05);
-      box-shadow: 0 0 10px rgba(59,130,246,0.7);
     }
 
     input {
@@ -71,7 +56,6 @@
       border-radius: 8px;
       border: none;
       text-align: center;
-      font-size: 16px;
     }
 
     #nav {
@@ -79,20 +63,10 @@
       bottom: 0;
       width: 100%;
       background: rgba(2,6,23,0.9);
-      backdrop-filter: blur(10px);
-      padding: 12px;
-      border-top: 1px solid rgba(255,255,255,0.05);
+      padding: 10px;
     }
 
-    #nav button {
-      width: 12%;
-      font-size: 14px;
-    }
-
-    #stats {
-      opacity: 0.7;
-      font-size: 14px;
-    }
+    #nav button { width: 12%; }
   </style>
 </head>
 
@@ -110,7 +84,6 @@
   <button onclick="coach()">🧠</button>
   <button onclick="memory()">🏠</button>
   <button onclick="speedMath()">⚡</button>
-  <button onclick="focus()">⏱</button>
   <button onclick="dashboard()">📊</button>
   <button onclick="trainingAdvice()">🎯</button>
 </div>
@@ -120,11 +93,12 @@
 // DATA
 let data = JSON.parse(localStorage.getItem("progress")) || {score:0,xp:0,skill:1};
 let weaknesses = JSON.parse(localStorage.getItem("weaknesses")) || {math:0,memory:0};
-let performance = {history:[]};
+let performance = JSON.parse(localStorage.getItem("performance")) || [];
 
 function save(){
 localStorage.setItem("progress",JSON.stringify(data));
 localStorage.setItem("weaknesses",JSON.stringify(weaknesses));
+localStorage.setItem("performance",JSON.stringify(performance));
 updateUI();
 }
 
@@ -135,30 +109,10 @@ updateUI();
 
 function show(c){document.getElementById("container").innerHTML=`<div class="card">${c}</div>`;}
 
-// AI
-function record(c,t=0){
-performance.history.push({correct:c,time:t});
-if(performance.history.length>10)performance.history.shift();
-}
-
-function accuracy(){
-let c=performance.history.filter(x=>x.correct).length;
-return c/performance.history.length||0;
-}
-
-function speed(){
-let t=performance.history.map(x=>x.time).filter(x=>x>0);
-if(!t.length)return 1;
-let avg=t.reduce((a,b)=>a+b,0)/t.length;
-return Math.max(0.5,Math.min(2,2000/avg));
-}
-
-function adapt(){
-let score=(accuracy()*0.7)+(speed()*0.3);
-if(score>0.75){data.skill+=0.3;data.xp+=10;}
-else if(score<0.4){data.skill-=0.2;}
-if(data.skill<1)data.skill=1;
-if(data.skill>10)data.skill=10;
+// RECORD PERFORMANCE
+function record(correct){
+performance.push(correct ? 1 : 0);
+if(performance.length>20) performance.shift();
 save();
 }
 
@@ -167,6 +121,7 @@ function tutorial(){
 show(`<h2>Protocol</h2><p>Pause → Identify → Choose → Visualize → Execute</p>`);
 }
 
+// COACH
 let coachProblem={};
 function coach(){
 let n=Math.floor(Math.random()*90)+10;
@@ -176,18 +131,20 @@ show(`<h2>${n}×11</h2><input id="c"><button onclick="checkCoach()">Submit</butt
 
 function checkCoach(){
 let v=parseInt(document.getElementById("c").value);
-if(v===coachProblem.correct){show(`<h2>Correct</h2>`);}
-else{
+if(v===coachProblem.correct){
+record(true);
+show(`<h2>Correct</h2>`);
+}else{
+record(false);
 weaknesses.math++; save();
-let d=coachProblem.num.toString().split('').map(Number);
-show(`<h2>${coachProblem.correct}</h2><p>${d[0]}(${d[0]}+${d[1]})${d[1]}</p>`);
+show(`<h2>${coachProblem.correct}</h2>`);
 }
 }
 
+// MEMORY
 function memory(){
-let pool=["dog","pizza","rocket","guitar","dragon","car"];
-let count=Math.floor(3+data.skill);
-let items=pool.sort(()=>0.5-Math.random()).slice(0,count);
+let pool=["dog","pizza","rocket","guitar","dragon"];
+let items=pool.sort(()=>0.5-Math.random()).slice(0,4);
 show(`<p>${items.join(", ")}</p><button onclick='recall(${JSON.stringify(items)})'>Start</button>`);
 }
 
@@ -199,51 +156,56 @@ show(i+`<button onclick='checkMemory(${JSON.stringify(items)})'>Check</button>`)
 function checkMemory(items){
 let c=0;
 items.forEach((it,i)=>{if(document.getElementById("i"+i).value===it)c++;});
+record(c>items.length/2);
 if(c<items.length/2){weaknesses.memory++; save();}
 data.score+=c;
-record(c>items.length/2);
-adapt();
 show(`<h2>${c}/${items.length}</h2>`);
 }
 
-let start;
+// MATH
 function speedMath(){
 let n=Math.floor(Math.random()*90)+10;
 let correct=n*11;
-start=Date.now();
 show(`<h2>${n}×11</h2><input id="a"><button onclick="checkMath(${correct})">Submit</button>`);
 }
 
 function checkMath(correct){
 let v=parseInt(document.getElementById("a").value);
-let t=Date.now()-start;
-if(v===correct){data.score++;record(true,t);}
-else{record(false,t);weaknesses.math++; save();}
-adapt();
+if(v===correct){data.score++;record(true);}
+else{record(false);weaknesses.math++; save();}
 show(`<h2>${v===correct?"Correct":"Answer "+correct}</h2>`);
 }
 
+// DASHBOARD WITH CHART
 function dashboard(){
 show(`<h2>Dashboard</h2>
-<p>Level: ${Math.floor(data.skill)}</p>
-<p>Score: ${data.score}</p>
-<p>XP: ${data.xp}</p>
-<hr>
+<canvas id="chart"></canvas>
 <p>Math Errors: ${weaknesses.math}</p>
-<p>Memory Errors: ${weaknesses.memory}</p>
-<hr>
-<p>Accuracy: ${(accuracy()*100).toFixed(0)}%</p>
-<p>Speed: ${speed().toFixed(2)}</p>`);
+<p>Memory Errors: ${weaknesses.memory}</p>`);
+
+setTimeout(()=>{
+new Chart(document.getElementById("chart"),{
+type:"line",
+data:{
+labels:performance.map((_,i)=>i+1),
+datasets:[{
+label:"Accuracy",
+data:performance,
+borderColor:"#3b82f6",
+fill:false
+}]
+}
+});
+},100);
 }
 
+// TRAINING ADVICE
 function trainingAdvice(){
-let advice="Balanced training";
-if(weaknesses.math>weaknesses.memory) advice="Focus on Speed Math";
-else if(weaknesses.memory>weaknesses.math) advice="Focus on Memory";
+let advice="Balanced";
+if(weaknesses.math>weaknesses.memory) advice="Focus Math";
+else if(weaknesses.memory>weaknesses.math) advice="Focus Memory";
 show(`<h2>Advice</h2><p>${advice}</p>`);
 }
-
-function focus(){show(`<h2>Focus Mode</h2>`);}
 
 </script>
 

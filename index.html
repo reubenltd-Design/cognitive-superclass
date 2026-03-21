@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Polymath System V8</title>
+<title>Polymath System V9</title>
 
 <style>
 body{
@@ -24,12 +24,13 @@ background:#38bdf8;color:white;
 cursor:pointer;
 }
 textarea{width:90%;height:100px;}
+pre{white-space:pre-wrap;text-align:left;}
 </style>
 </head>
 
 <body>
 
-<h2>🧠 Polymath V8</h2>
+<h2>🧠 Polymath V9</h2>
 
 <div id="control"></div>
 <div id="center"></div>
@@ -62,6 +63,10 @@ document.getElementById("stats").innerText =
 }
 updateUI();
 
+// -------- UI HELPERS --------
+function center(t){document.getElementById("center").innerHTML=t;}
+function show(t){document.getElementById("main").innerHTML=`<div class="card">${t}</div>`;}
+
 // -------- CONTROL --------
 function control(mode="idle"){
 
@@ -89,7 +94,7 @@ control("active");
 aiTask();
 }
 
-// -------- AI TASK --------
+// -------- TASK GENERATOR --------
 function aiTask(){
 
 let difficulty = state.aiLevel;
@@ -97,38 +102,32 @@ let difficulty = state.aiLevel;
 let tasks = [
 {
 type:"improve",
-prompt:"Improve this prompt:",
-content:"Give me business ideas"
+content:"Improve this prompt: Give me business ideas"
 },
 {
 type:"create",
-prompt:"Write a prompt for:",
-content:"A service that makes money using AI"
+content:"Write a prompt for: A service that makes money using AI"
 },
 {
 type:"strategy",
-prompt:"Create a step-by-step plan:",
-content:"Make $100 using AI this week"
+content:"Create a step-by-step plan: Make $100 using AI this week"
 }
 ];
 
-// harder tasks at higher levels
 if(difficulty > 3){
 tasks.push({
 type:"advanced",
-prompt:"Design a micro-business:",
-content:"Use AI + zero budget"
+content:"Design a micro-business using AI with zero budget"
 });
 }
 
 let t = tasks[Math.floor(Math.random()*tasks.length)];
-
 window.currentTask = t;
 
 center("AI Operator");
+
 show(`
-<h3>${t.prompt}</h3>
-<p>${t.content}</p>
+<h3>${t.content}</h3>
 <textarea id="aiInput"></textarea><br>
 <button onclick="submitAI()">Submit</button>
 `);
@@ -140,11 +139,11 @@ control("active");
 
 window.currentTask = {
 type:"money",
-prompt:"REAL MONEY TASK",
-content:"What can you sell TODAY using AI? Be specific, include price + target customer."
+content:"What can you sell TODAY using AI? Include price + customer."
 };
 
 center("💰 Money Mode");
+
 show(`
 <h3>${currentTask.content}</h3>
 <textarea id="aiInput"></textarea><br>
@@ -152,11 +151,11 @@ show(`
 `);
 }
 
-// -------- DAILY MISSION --------
+// -------- DAILY --------
 function dailyMission(){
 
 if(state.dailyCompleted){
-center("Mission already completed today ✅");
+center("Mission already done ✅");
 return;
 }
 
@@ -164,61 +163,95 @@ control("active");
 
 window.currentTask = {
 type:"daily",
-prompt:"Daily Mission",
-content:"Create one actionable AI service idea AND how you would get your first customer."
+content:"Create one AI service + how you get your first customer."
 };
 
 center("🎯 Daily Mission");
+
 show(`
 <h3>${currentTask.content}</h3>
 <textarea id="aiInput"></textarea><br>
-<button onclick="submitAI(true)">Complete Mission</button>
+<button onclick="submitAI(true)">Complete</button>
 `);
 }
 
-// -------- AI EVAL --------
+// -------- AI ENGINE --------
 async function submitAI(isDaily=false){
 
 let input = document.getElementById("aiInput").value;
+
+if(!input){
+center("⚠️ Enter something");
+return;
+}
 
 center("Evaluating...");
 
 if(currentTask.type==="money") state.revenueAttempts++;
 
+try{
+
 let res = await fetch("https://api.openai.com/v1/chat/completions",{
 method:"POST",
 headers:{
 "Content-Type":"application/json",
-"Authorization":"Bearer "+API_KEY
+"Authorization":"Bearer " + API_KEY
 },
 body:JSON.stringify({
 model:"gpt-4o-mini",
 messages:[
 {
 role:"system",
-content:"Score 1-10 based on clarity, specificity, usefulness, and real-world actionability. Be strict."
+content:`You are a strict evaluator AND mentor.
+
+1. Score 1-10
+2. Give feedback
+3. Rewrite a HIGH LEVEL version
+
+Format:
+
+Score: X/10
+Feedback: ...
+Improved: ...`
 },
 {
 role:"user",
-content:`TASK: ${currentTask.content}\n\nANSWER:\n${input}\n\nFormat:\nScore: X/10\nFeedback: ...`
+content:`TASK: ${currentTask.content}
+
+ANSWER:
+${input}`
 }
 ]
 })
 });
 
+// error handling
+if(!res.ok){
+let err = await res.text();
+center("API Error ❌");
+show(`<pre>${err}</pre>`);
+return;
+}
+
 let data = await res.json();
+
+if(!data.choices){
+center("Bad response ❌");
+show(`<pre>${JSON.stringify(data,null,2)}</pre>`);
+return;
+}
+
 let text = data.choices[0].message.content;
 
+// extract score
 let match = text.match(/Score:\s*(\d+)/);
 let score = match ? parseInt(match[1]) : 5;
 
-// apply results
+// apply
 if(score >= 7){
 state.ai += 0.1;
 state.score += score;
-
 if(score >= 9) state.score += 2;
-
 center("Strong 🔥");
 }else{
 state.ai -= 0.05;
@@ -231,24 +264,28 @@ state.aiLevel++;
 center("LEVEL UP 🚀");
 }
 
-// daily completion
-if(isDaily){
-state.dailyCompleted = true;
-}
+if(isDaily) state.dailyCompleted = true;
 
-// history tracking
+// history
 state.history.push(score);
 if(state.history.length > 30) state.history.shift();
 
 save();
 
-// show feedback
+// output
 show(`
-<h3>Feedback</h3>
-<p>${text}</p>
+<h3>Results</h3>
+<pre>${text}</pre>
+
 <button onclick="start()">Next</button>
 <button onclick="control()">Menu</button>
 `);
+
+}catch(err){
+center("Crash ❌");
+show(`<pre>${err}</pre>`);
+}
+
 }
 
 // -------- DASHBOARD --------
@@ -272,25 +309,7 @@ show(`
 </script>
 
 </body>
-</html><button onclick="start()">Start Session</button>
-
-<script>
-
-// -------- CONFIG --------
-const API_KEY = "YOUR_API_KEY"; // 🔴 REPLACE THIS
-
-// -------- STATE --------
-let state = JSON.parse(localStorage.getItem("state")) || {
-ai:1,
-score:0,
-aiLevel:1,
-revenueAttempts:0
-};
-
-function save(){
-localStorage.setItem("state",JSON.stringify(state));
-updateUI();
-}
+</html>}
 
 function updateUI(){
 document.getElementById("stats").innerText =

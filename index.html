@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Polymath System V7</title>
+<title>Polymath System V7.5</title>
 
 <style>
 body{
@@ -13,99 +13,57 @@ text-align:center;
 }
 
 /* RANK */
-#rank-display{margin-top:10px;}
-.rank-title{font-size:14px;opacity:0.7;letter-spacing:2px;}
-.rank-name{font-size:32px;font-weight:bold;color:#38bdf8;}
-
-.progress{
-width:260px;height:10px;
-background:#334155;border-radius:10px;margin:8px auto;
-}
-.bar{
-height:10px;
-background:linear-gradient(90deg,#38bdf8,#22d3ee);
-border-radius:10px;
-}
+.rank-name{font-size:30px;color:#38bdf8;}
+.progress{width:260px;height:10px;background:#334155;margin:10px auto;border-radius:10px;}
+.bar{height:10px;background:#38bdf8;border-radius:10px;}
 
 /* CORE */
 #core{
-width:120px;height:120px;margin:20px auto;
+width:100px;height:100px;margin:20px auto;
 border-radius:50%;
-background:radial-gradient(circle,#38bdf8,#0ea5e9);
-box-shadow:0 0 70px rgba(56,189,248,0.8);
-animation:pulse 3s infinite;
+background:#38bdf8;
+box-shadow:0 0 60px #38bdf8;
 }
-@keyframes pulse{50%{transform:scale(1.15);}}
 
-/* PANELS */
-#center,.card{
+/* CARD */
+.card{
 width:340px;margin:10px auto;padding:20px;
-border-radius:20px;
 background:rgba(255,255,255,0.08);
-backdrop-filter:blur(20px);
+border-radius:15px;
 }
 
-/* BUTTONS */
+/* BUTTON */
 button{
-padding:10px 14px;margin:6px;
-border-radius:10px;border:none;
-background:linear-gradient(135deg,#38bdf8,#0ea5e9);
-color:white;cursor:pointer;
+padding:10px;margin:5px;
+border:none;border-radius:10px;
+background:#38bdf8;color:white;
 }
 
 /* INPUT */
-textarea{
-width:90%;height:100px;
-border-radius:10px;border:none;
-padding:10px;
-background:#020617;color:white;
-}
-
-/* OUTPUT */
-.output{
-text-align:left;
-white-space:pre-wrap;
-background:#020617;
-padding:12px;
-border-radius:10px;
-margin-top:10px;
-}
-
-/* NAV */
-#nav{
-position:fixed;bottom:0;width:100%;
-background:#0f172a;padding:10px;
-}
-
-#stats{font-size:13px;opacity:0.8;}
+textarea{width:90%;height:100px;}
+.output{background:#020617;padding:10px;margin-top:10px;border-radius:10px;}
 </style>
 </head>
 
 <body>
 
-<h2>🧠 Polymath V7</h2>
+<h2>🧠 Polymath System</h2>
 
-<div id="rank-display"></div>
+<div id="rank"></div>
 <div id="core"></div>
 <div id="center"></div>
-<p id="stats"></p>
 <div id="main"></div>
-
-<div id="nav">
-<button onclick="start()">🚀 Start</button>
-<button onclick="control()">🏠 Menu</button>
-</div>
+<p id="stats"></p>
 
 <script>
 
-// -------- CONFIG --------
-const API_KEY = "YOUR_API_KEY";
+// CONFIG
+const API_KEY="YOUR_API_KEY";
 
-// -------- STATE --------
+// STATE
 let state=JSON.parse(localStorage.getItem("state"))||{
-ai:1,
-score:0,
-history:[]
+math:1,memory:1,focus:1,ai:1,
+score:0
 };
 
 function save(){
@@ -113,25 +71,14 @@ localStorage.setItem("state",JSON.stringify(state));
 updateUI();
 }
 
-// -------- CALC --------
-function avg(){return state.ai;}
-function getRank(){
-if(state.ai<2) return "Beginner";
-if(state.ai<3) return "Apprentice";
-if(state.ai<4) return "Practitioner";
-if(state.ai<5) return "Advanced";
-return "Operator";
-}
-function progress(){return (state.ai%1)*100;}
+// UI
+function avg(){return (state.math+state.memory+state.focus+state.ai)/4;}
+function rank(){return avg().toFixed(1);}
 
-// -------- UI --------
 function updateUI(){
-
-document.getElementById("rank-display").innerHTML=`
-<div class="rank-title">RANK</div>
-<div class="rank-name">${getRank()}</div>
-<div class="progress"><div class="bar" style="width:${progress()}%"></div></div>
-`;
+document.getElementById("rank").innerHTML=
+`<div class="rank-name">Level ${rank()}</div>
+<div class="progress"><div class="bar" style="width:${(avg()%1)*100}%"></div></div>`;
 
 document.getElementById("stats").innerText=
 `Score: ${state.score}`;
@@ -141,72 +88,117 @@ updateUI();
 function center(t){document.getElementById("center").innerHTML=t;}
 function show(t){document.getElementById("main").innerHTML=`<div class="card">${t}</div>`;}
 
-// -------- CONTROL --------
-function control(){
+// MENU
+function menu(){
 center(`
-<h3>Select Mode</h3>
-<button onclick="start()">Training</button>
-<button onclick="money()">Money</button>
-<button onclick="daily()">Daily</button>
+<button onclick="math()">Math</button>
+<button onclick="memory()">Memory</button>
+<button onclick="focus()">Focus</button>
+<button onclick="ai()">AI</button>
 `);
 }
-control();
+menu();
 
-// -------- TASK --------
-function start(){
-let tasks=[
-"Improve this prompt: Give me business ideas",
-"Write a prompt for an AI money-making service",
-"Create a plan to make $100 using AI this week"
-];
+// MATH
+function math(){
+let n=Math.floor(Math.random()*50)+10;
+window.answer=n*11;
 
-let t=tasks[Math.floor(Math.random()*tasks.length)];
-window.currentTask=t;
-
-center("AI Training");
-
+center("Math");
 show(`
-<h3>${t}</h3>
-<textarea id="input"></textarea><br>
-<button onclick="submit()">Submit</button>
+<h3>${n} × 11</h3>
+<input id="a">
+<button onclick="checkMath()">Submit</button>
 `);
 }
 
-function money(){
-window.currentTask="What can you sell TODAY using AI? Include price + customer.";
-center("💰 Money Mode");
+function checkMath(){
+let v=parseInt(document.getElementById("a").value);
 
+if(v===answer){
+state.math+=0.1;
+state.score++;
+center("Correct");
+}else{
+state.math-=0.05;
+center("Wrong");
+}
+save();menu();
+}
+
+// MEMORY
+function memory(){
+let items=["dog","pizza","rocket","guitar"];
+window.items=items;
+
+center("Memory");
 show(`
-<h3>${currentTask}</h3>
-<textarea id="input"></textarea><br>
-<button onclick="submit()">Submit</button>
+<p>${items.join(", ")}</p>
+<button onclick="recall()">Recall</button>
 `);
 }
 
-function daily(){
-window.currentTask="Create one AI service + how to get your first customer.";
-center("🎯 Daily");
-
+function recall(){
 show(`
-<h3>${currentTask}</h3>
-<textarea id="input"></textarea><br>
-<button onclick="submit()">Submit</button>
+<input id="i0"><br>
+<input id="i1"><br>
+<input id="i2"><br>
+<input id="i3"><br>
+<button onclick="checkMemory()">Check</button>
 `);
 }
 
-// -------- AI --------
-async function submit(){
+function checkMemory(){
+let c=0;
+items.forEach((it,i)=>{
+if(document.getElementById("i"+i).value===it)c++;
+});
+
+if(c>=3){
+state.memory+=0.1;
+center("Strong");
+}else{
+state.memory-=0.05;
+center("Weak");
+}
+
+state.score+=c;
+save();menu();
+}
+
+// FOCUS
+function focus(){
+center("Focus");
+show(`
+<h3>Focus 10 seconds</h3>
+<button onclick="finishFocus()">Done</button>
+`);
+}
+
+function finishFocus(){
+state.focus+=0.1;
+state.score++;
+center("Done");
+save();menu();
+}
+
+// AI
+function ai(){
+window.task="Improve: Give me business ideas";
+
+center("AI");
+show(`
+<h3>${task}</h3>
+<textarea id="input"></textarea>
+<button onclick="submitAI()">Submit</button>
+`);
+}
+
+async function submitAI(){
 
 let input=document.getElementById("input").value;
 
-if(!input){
-center("⚠️ Write something");
-return;
-}
-
-center("Analyzing...");
-
-try{
+center("Thinking...");
 
 let res=await fetch("https://api.openai.com/v1/chat/completions",{
 method:"POST",
@@ -217,71 +209,30 @@ headers:{
 body:JSON.stringify({
 model:"gpt-4o-mini",
 messages:[
-{
-role:"system",
-content:`You are a strict coach.
-
-Score 1-10.
-Give feedback.
-Rewrite a better version.
-
-Format:
-
-Score: X/10
-Feedback: ...
-Improved: ...`
-},
-{
-role:"user",
-content:`TASK: ${currentTask}
-
-ANSWER:
-${input}`
-}
+{role:"system",content:"Score 1-10, feedback, improve."},
+{role:"user",content:`TASK: ${task}\n${input}`}
 ]
 })
 });
 
-if(!res.ok){
-let err=await res.text();
-center("API Error");
-show(`<div class="output">${err}</div>`);
-return;
-}
-
 let data=await res.json();
 let text=data.choices[0].message.content;
 
-// score
-let match=text.match(/Score:\s*(\d+)/);
-let score=match?parseInt(match[1]):5;
+let scoreMatch=text.match(/(\d+)/);
+let score=scoreMatch?parseInt(scoreMatch[1]):5;
 
-// progression
 if(score>=7){
 state.ai+=0.1;
 state.score+=score;
-center("Strong 🔥");
+center("Strong");
 }else{
 state.ai-=0.05;
 center("Weak");
 }
 
-state.history.push(score);
-if(state.history.length>20) state.history.shift();
-
 save();
 
-show(`
-<h3>Result</h3>
-<div class="output">${text}</div>
-<button onclick="start()">Next</button>
-`);
-
-}catch(e){
-center("Crash");
-show(`<div class="output">${e}</div>`);
-}
-
+show(`<div class="output">${text}</div>`);
 }
 
 </script>

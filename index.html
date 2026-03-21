@@ -1,84 +1,99 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>AI Operator Console</title>
+<title>Polymath System V7</title>
 
 <style>
 body{
 margin:0;
-font-family:system-ui;
-background:#0f172a;
+font-family:-apple-system,Segoe UI;
+background:linear-gradient(160deg,#0f172a,#1e293b,#0ea5e9);
 color:#e2e8f0;
+text-align:center;
 }
 
-/* LAYOUT */
-.container{
-max-width:500px;
-margin:40px auto;
-padding:20px;
-}
+/* RANK */
+#rank-display{margin-top:10px;}
+.rank-title{font-size:14px;opacity:0.7;letter-spacing:2px;}
+.rank-name{font-size:32px;font-weight:bold;color:#38bdf8;}
 
-/* TITLE */
-h1{
-font-size:20px;
-font-weight:600;
-margin-bottom:20px;
+.progress{
+width:260px;height:10px;
+background:#334155;border-radius:10px;margin:8px auto;
 }
-
-/* PANEL */
-.panel{
-background:#020617;
-border:1px solid #1e293b;
+.bar{
+height:10px;
+background:linear-gradient(90deg,#38bdf8,#22d3ee);
 border-radius:10px;
-padding:16px;
-margin-bottom:15px;
+}
+
+/* CORE */
+#core{
+width:120px;height:120px;margin:20px auto;
+border-radius:50%;
+background:radial-gradient(circle,#38bdf8,#0ea5e9);
+box-shadow:0 0 70px rgba(56,189,248,0.8);
+animation:pulse 3s infinite;
+}
+@keyframes pulse{50%{transform:scale(1.15);}}
+
+/* PANELS */
+#center,.card{
+width:340px;margin:10px auto;padding:20px;
+border-radius:20px;
+background:rgba(255,255,255,0.08);
+backdrop-filter:blur(20px);
 }
 
 /* BUTTONS */
 button{
-padding:10px 14px;
-margin:4px;
-border-radius:6px;
-border:1px solid #334155;
-background:#0f172a;
-color:#e2e8f0;
-cursor:pointer;
-}
-
-button:hover{
-background:#1e293b;
+padding:10px 14px;margin:6px;
+border-radius:10px;border:none;
+background:linear-gradient(135deg,#38bdf8,#0ea5e9);
+color:white;cursor:pointer;
 }
 
 /* INPUT */
 textarea{
-width:100%;
-height:120px;
-background:#020617;
-border:1px solid #334155;
-color:white;
+width:90%;height:100px;
+border-radius:10px;border:none;
 padding:10px;
-border-radius:6px;
+background:#020617;color:white;
 }
 
 /* OUTPUT */
 .output{
+text-align:left;
 white-space:pre-wrap;
-font-size:14px;
-line-height:1.4;
+background:#020617;
+padding:12px;
+border-radius:10px;
+margin-top:10px;
 }
+
+/* NAV */
+#nav{
+position:fixed;bottom:0;width:100%;
+background:#0f172a;padding:10px;
+}
+
+#stats{font-size:13px;opacity:0.8;}
 </style>
 </head>
 
 <body>
 
-<div class="container">
+<h2>🧠 Polymath V7</h2>
 
-<h1>🧠 AI Operator Console</h1>
+<div id="rank-display"></div>
+<div id="core"></div>
+<div id="center"></div>
+<p id="stats"></p>
+<div id="main"></div>
 
-<div class="panel" id="controls"></div>
-<div class="panel" id="task"></div>
-<div class="panel" id="output"></div>
-
+<div id="nav">
+<button onclick="start()">🚀 Start</button>
+<button onclick="control()">🏠 Menu</button>
 </div>
 
 <script>
@@ -87,194 +102,9 @@ line-height:1.4;
 const API_KEY = "YOUR_API_KEY";
 
 // -------- STATE --------
-let state = JSON.parse(localStorage.getItem("state")) || {
-level:1,
-score:0
-};
-
-function save(){
-localStorage.setItem("state",JSON.stringify(state));
-renderControls();
-}
-
-// -------- UI --------
-function renderControls(){
-document.getElementById("controls").innerHTML = `
-Level ${state.level} | Score ${state.score}<br><br>
-<button onclick="start()">Start</button>
-<button onclick="money()">Money</button>
-<button onclick="daily()">Daily</button>
-`;
-}
-renderControls();
-
-function setTask(t){
-document.getElementById("task").innerHTML = `
-<p>${t}</p>
-<textarea id="input"></textarea><br>
-<button onclick="submit()">Submit</button>
-`;
-}
-
-function setOutput(t){
-document.getElementById("output").innerHTML = `<div class="output">${t}</div>`;
-}
-
-// -------- MODES --------
-function start(){
-window.currentTask = "Improve this prompt: Give me business ideas";
-setTask(currentTask);
-}
-
-function money(){
-window.currentTask = "What can you sell TODAY using AI?";
-setTask(currentTask);
-}
-
-function daily(){
-window.currentTask = "Create one AI service and how to get first customer";
-setTask(currentTask);
-}
-
-// -------- AI --------
-async function submit(){
-
-let input = document.getElementById("input").value;
-
-if(!input){
-setOutput("Write something first");
-return;
-}
-
-setOutput("Analyzing...");
-
-try{
-
-let res = await fetch("https://api.openai.com/v1/chat/completions",{
-method:"POST",
-headers:{
-"Content-Type":"application/json",
-"Authorization":"Bearer " + API_KEY
-},
-body:JSON.stringify({
-model:"gpt-4o-mini",
-messages:[
-{
-role:"system",
-content:"Score 1-10. Give feedback. Improve answer."
-},
-{
-role:"user",
-content:`TASK: ${currentTask}\n\nANSWER:\n${input}`
-}
-]
-})
-});
-
-if(!res.ok){
-let err = await res.text();
-setOutput(err);
-return;
-}
-
-let data = await res.json();
-let text = data.choices[0].message.content;
-
-let match = text.match(/(\d+)/);
-let score = match ? parseInt(match[1]) : 5;
-
-state.score += score;
-
-if(state.score > state.level * 20){
-state.level++;
-}
-
-save();
-
-setOutput(text);
-
-}catch(e){
-setOutput(e);
-}
-
-}
-
-</script>
-
-</body>
-</html>color:#67e8f9;
-}
-
-/* BUTTONS */
-button{
-padding:12px 16px;
-margin:6px;
-border:none;
-border-radius:12px;
-background:linear-gradient(135deg,#38bdf8,#0ea5e9);
-color:white;
-font-weight:500;
-cursor:pointer;
-transition:0.2s;
-}
-
-button:hover{
-transform:scale(1.05);
-box-shadow:0 0 15px rgba(56,189,248,0.6);
-}
-
-/* INPUT */
-textarea{
-width:95%;
-height:120px;
-border-radius:12px;
-border:none;
-padding:10px;
-background:#0f172a;
-color:white;
-}
-
-/* STATS BAR */
-#stats{
-margin-top:10px;
-font-size:14px;
-opacity:0.8;
-}
-
-/* RESULT */
-.result{
-text-align:left;
-white-space:pre-wrap;
-background:#020617;
-padding:15px;
-border-radius:12px;
-margin-top:10px;
-border:1px solid rgba(255,255,255,0.1);
-}
-</style>
-</head>
-
-<body>
-
-<h2>🧠 AI Operator System</h2>
-
-<div id="control"></div>
-<div id="center"></div>
-<div id="main"></div>
-<p id="stats"></p>
-
-<script>
-
-// -------- CONFIG --------
-const API_KEY = "YOUR_API_KEY";
-
-// -------- STATE --------
-let state = JSON.parse(localStorage.getItem("state")) || {
+let state=JSON.parse(localStorage.getItem("state"))||{
 ai:1,
 score:0,
-aiLevel:1,
-revenueAttempts:0,
-dailyCompleted:false,
 history:[]
 };
 
@@ -283,106 +113,91 @@ localStorage.setItem("state",JSON.stringify(state));
 updateUI();
 }
 
+// -------- CALC --------
+function avg(){return state.ai;}
+function getRank(){
+if(state.ai<2) return "Beginner";
+if(state.ai<3) return "Apprentice";
+if(state.ai<4) return "Practitioner";
+if(state.ai<5) return "Advanced";
+return "Operator";
+}
+function progress(){return (state.ai%1)*100;}
+
+// -------- UI --------
 function updateUI(){
-document.getElementById("stats").innerText =
-`Level ${state.aiLevel} • Score ${state.score} • Revenue ${state.revenueAttempts}`;
+
+document.getElementById("rank-display").innerHTML=`
+<div class="rank-title">RANK</div>
+<div class="rank-name">${getRank()}</div>
+<div class="progress"><div class="bar" style="width:${progress()}%"></div></div>
+`;
+
+document.getElementById("stats").innerText=
+`Score: ${state.score}`;
 }
 updateUI();
 
-// -------- UI HELPERS --------
 function center(t){document.getElementById("center").innerHTML=t;}
 function show(t){document.getElementById("main").innerHTML=`<div class="card">${t}</div>`;}
 
 // -------- CONTROL --------
-function control(mode="idle"){
-
-if(mode==="idle"){
-document.getElementById("control").innerHTML = `
-<button onclick="start()">🚀 Train</button>
-<button onclick="moneyMode()">💰 Money</button>
-<button onclick="dailyMission()">🎯 Daily</button>
-<button onclick="dashboard()">📊 Stats</button>
-`;
-}
-
-if(mode==="active"){
-document.getElementById("control").innerHTML = `
-<button onclick="start()">🔁 Restart</button>
-<button onclick="control()">⬅ Exit</button>
-`;
-}
+function control(){
+center(`
+<h3>Select Mode</h3>
+<button onclick="start()">Training</button>
+<button onclick="money()">Money</button>
+<button onclick="daily()">Daily</button>
+`);
 }
 control();
 
 // -------- TASK --------
 function start(){
-control("active");
-
-let tasks = [
+let tasks=[
 "Improve this prompt: Give me business ideas",
 "Write a prompt for an AI money-making service",
 "Create a plan to make $100 using AI this week"
 ];
 
-let t = tasks[Math.floor(Math.random()*tasks.length)];
-
-window.currentTask = {type:"normal",content:t};
+let t=tasks[Math.floor(Math.random()*tasks.length)];
+window.currentTask=t;
 
 center("AI Training");
 
 show(`
 <h3>${t}</h3>
-<textarea id="aiInput"></textarea><br>
-<button onclick="submitAI()">Submit</button>
+<textarea id="input"></textarea><br>
+<button onclick="submit()">Submit</button>
 `);
 }
 
-// -------- MONEY --------
-function moneyMode(){
-control("active");
-
-window.currentTask = {
-type:"money",
-content:"What can you sell TODAY using AI? Include price + customer."
-};
-
+function money(){
+window.currentTask="What can you sell TODAY using AI? Include price + customer.";
 center("💰 Money Mode");
 
 show(`
-<h3>${currentTask.content}</h3>
-<textarea id="aiInput"></textarea><br>
-<button onclick="submitAI()">Submit</button>
+<h3>${currentTask}</h3>
+<textarea id="input"></textarea><br>
+<button onclick="submit()">Submit</button>
 `);
 }
 
-// -------- DAILY --------
-function dailyMission(){
-
-if(state.dailyCompleted){
-center("Mission complete ✅");
-return;
-}
-
-control("active");
-
-window.currentTask = {
-type:"daily",
-content:"Create one AI service + how to get first customer"
-};
-
-center("🎯 Daily Mission");
+function daily(){
+window.currentTask="Create one AI service + how to get your first customer.";
+center("🎯 Daily");
 
 show(`
-<h3>${currentTask.content}</h3>
-<textarea id="aiInput"></textarea><br>
-<button onclick="submitAI(true)">Complete</button>
+<h3>${currentTask}</h3>
+<textarea id="input"></textarea><br>
+<button onclick="submit()">Submit</button>
 `);
 }
 
 // -------- AI --------
-async function submitAI(isDaily=false){
+async function submit(){
 
-let input = document.getElementById("aiInput").value;
+let input=document.getElementById("input").value;
 
 if(!input){
 center("⚠️ Write something");
@@ -391,452 +206,9 @@ return;
 
 center("Analyzing...");
 
-if(currentTask.type==="money") state.revenueAttempts++;
-
 try{
 
-let res = await fetch("https://api.openai.com/v1/chat/completions",{
-method:"POST",
-headers:{
-"Content-Type":"application/json",
-"Authorization":"Bearer " + API_KEY
-},
-body:JSON.stringify({
-model:"gpt-4o-mini",
-messages:[
-{
-role:"system",
-content:`Score + improve.
-
-Format:
-Score: X/10
-Feedback: ...
-Improved: ...`
-},
-{
-role:"user",
-content:`TASK: ${currentTask.content}
-
-ANSWER:
-${input}`
-}
-]
-})
-});
-
-if(!res.ok){
-let err = await res.text();
-center("API Error");
-show(`<div class="result">${err}</div>`);
-return;
-}
-
-let data = await res.json();
-let text = data.choices[0].message.content;
-
-let scoreMatch = text.match(/Score:\s*(\d+)/);
-let score = scoreMatch ? parseInt(scoreMatch[1]) : 5;
-
-// progression
-if(score >= 7){
-state.score += score;
-state.ai += 0.1;
-center("Strong 🔥");
-}else{
-state.ai -= 0.05;
-center("Weak");
-}
-
-if(state.score >= state.aiLevel * 25){
-state.aiLevel++;
-center("LEVEL UP 🚀");
-}
-
-if(isDaily) state.dailyCompleted = true;
-
-state.history.push(score);
-if(state.history.length > 30) state.history.shift();
-
-save();
-
-show(`
-<h3>Result</h3>
-<div class="result">${text}</div>
-<button onclick="start()">Next</button>
-<button onclick="control()">Menu</button>
-`);
-
-}catch(e){
-center("Crash");
-show(`<div class="result">${e}</div>`);
-}
-
-}
-
-// -------- DASHBOARD --------
-function dashboard(){
-
-center("📊 Stats");
-
-let avg = state.history.length
-? (state.history.reduce((a,b)=>a+b,0)/state.history.length).toFixed(2)
-: 0;
-
-show(`
-<p>Level: ${state.aiLevel}</p>
-<p>Score: ${state.score}</p>
-<p>Revenue Attempts: ${state.revenueAttempts}</p>
-<p>Avg Score: ${avg}</p>
-<button onclick="control()">Back</button>
-`);
-}
-
-</script>
-
-</body>
-</html><div id="main"></div>
-<p id="stats"></p>
-
-<script>
-
-// -------- CONFIG --------
-const API_KEY = "YOUR_API_KEY";
-
-// -------- STATE --------
-let state = JSON.parse(localStorage.getItem("state")) || {
-ai:1,
-score:0,
-aiLevel:1,
-revenueAttempts:0,
-dailyCompleted:false,
-history:[]
-};
-
-function save(){
-localStorage.setItem("state",JSON.stringify(state));
-updateUI();
-}
-
-function updateUI(){
-document.getElementById("stats").innerText =
-`Level: ${state.aiLevel} | Score: ${state.score} | Revenue: ${state.revenueAttempts}`;
-}
-updateUI();
-
-// -------- UI HELPERS --------
-function center(t){document.getElementById("center").innerHTML=t;}
-function show(t){document.getElementById("main").innerHTML=`<div class="card">${t}</div>`;}
-
-// -------- CONTROL --------
-function control(mode="idle"){
-
-if(mode==="idle"){
-document.getElementById("control").innerHTML = `
-<button onclick="start()">🚀 Start</button>
-<button onclick="moneyMode()">💰 Money Mode</button>
-<button onclick="dailyMission()">🎯 Daily Mission</button>
-<button onclick="dashboard()">📊 Dashboard</button>
-`;
-}
-
-if(mode==="active"){
-document.getElementById("control").innerHTML = `
-<button onclick="start()">🔁 Restart</button>
-<button onclick="control()">⬅ Menu</button>
-`;
-}
-}
-control();
-
-// -------- SESSION --------
-function start(){
-control("active");
-aiTask();
-}
-
-// -------- TASK GENERATOR --------
-function aiTask(){
-
-let difficulty = state.aiLevel;
-
-let tasks = [
-{
-type:"improve",
-content:"Improve this prompt: Give me business ideas"
-},
-{
-type:"create",
-content:"Write a prompt for: A service that makes money using AI"
-},
-{
-type:"strategy",
-content:"Create a step-by-step plan: Make $100 using AI this week"
-}
-];
-
-if(difficulty > 3){
-tasks.push({
-type:"advanced",
-content:"Design a micro-business using AI with zero budget"
-});
-}
-
-let t = tasks[Math.floor(Math.random()*tasks.length)];
-window.currentTask = t;
-
-center("AI Operator");
-
-show(`
-<h3>${t.content}</h3>
-<textarea id="aiInput"></textarea><br>
-<button onclick="submitAI()">Submit</button>
-`);
-}
-
-// -------- MONEY MODE --------
-function moneyMode(){
-control("active");
-
-window.currentTask = {
-type:"money",
-content:"What can you sell TODAY using AI? Include price + customer."
-};
-
-center("💰 Money Mode");
-
-show(`
-<h3>${currentTask.content}</h3>
-<textarea id="aiInput"></textarea><br>
-<button onclick="submitAI()">Submit</button>
-`);
-}
-
-// -------- DAILY --------
-function dailyMission(){
-
-if(state.dailyCompleted){
-center("Mission already done ✅");
-return;
-}
-
-control("active");
-
-window.currentTask = {
-type:"daily",
-content:"Create one AI service + how you get your first customer."
-};
-
-center("🎯 Daily Mission");
-
-show(`
-<h3>${currentTask.content}</h3>
-<textarea id="aiInput"></textarea><br>
-<button onclick="submitAI(true)">Complete</button>
-`);
-}
-
-// -------- AI ENGINE --------
-async function submitAI(isDaily=false){
-
-let input = document.getElementById("aiInput").value;
-
-if(!input){
-center("⚠️ Enter something");
-return;
-}
-
-center("Evaluating...");
-
-if(currentTask.type==="money") state.revenueAttempts++;
-
-try{
-
-let res = await fetch("https://api.openai.com/v1/chat/completions",{
-method:"POST",
-headers:{
-"Content-Type":"application/json",
-"Authorization":"Bearer " + API_KEY
-},
-body:JSON.stringify({
-model:"gpt-4o-mini",
-messages:[
-{
-role:"system",
-content:`You are a strict evaluator AND mentor.
-
-1. Score 1-10
-2. Give feedback
-3. Rewrite a HIGH LEVEL version
-
-Format:
-
-Score: X/10
-Feedback: ...
-Improved: ...`
-},
-{
-role:"user",
-content:`TASK: ${currentTask.content}
-
-ANSWER:
-${input}`
-}
-]
-})
-});
-
-// error handling
-if(!res.ok){
-let err = await res.text();
-center("API Error ❌");
-show(`<pre>${err}</pre>`);
-return;
-}
-
-let data = await res.json();
-
-if(!data.choices){
-center("Bad response ❌");
-show(`<pre>${JSON.stringify(data,null,2)}</pre>`);
-return;
-}
-
-let text = data.choices[0].message.content;
-
-// extract score
-let match = text.match(/Score:\s*(\d+)/);
-let score = match ? parseInt(match[1]) : 5;
-
-// apply
-if(score >= 7){
-state.ai += 0.1;
-state.score += score;
-if(score >= 9) state.score += 2;
-center("Strong 🔥");
-}else{
-state.ai -= 0.05;
-center("Weak");
-}
-
-// level up
-if(state.score >= state.aiLevel * 25){
-state.aiLevel++;
-center("LEVEL UP 🚀");
-}
-
-if(isDaily) state.dailyCompleted = true;
-
-// history
-state.history.push(score);
-if(state.history.length > 30) state.history.shift();
-
-save();
-
-// output
-show(`
-<h3>Results</h3>
-<pre>${text}</pre>
-
-<button onclick="start()">Next</button>
-<button onclick="control()">Menu</button>
-`);
-
-}catch(err){
-center("Crash ❌");
-show(`<pre>${err}</pre>`);
-}
-
-}
-
-// -------- DASHBOARD --------
-function dashboard(){
-
-center("📊 Dashboard");
-
-let avg = state.history.length
-? (state.history.reduce((a,b)=>a+b,0)/state.history.length).toFixed(2)
-: 0;
-
-show(`
-<p>AI Level: ${state.aiLevel}</p>
-<p>Score: ${state.score}</p>
-<p>Revenue Attempts: ${state.revenueAttempts}</p>
-<p>Avg Score: ${avg}</p>
-<button onclick="control()">Back</button>
-`);
-}
-
-</script>
-
-</body>
-</html>}
-
-function updateUI(){
-document.getElementById("stats").innerText =
-"AI Level: "+state.aiLevel+
-" | Score: "+state.score+
-" | Revenue Attempts: "+state.revenueAttempts;
-}
-updateUI();
-
-function center(t){document.getElementById("center").innerHTML=t;}
-function show(t){document.getElementById("main").innerHTML=`<div class="card">${t}</div>`;}
-
-// -------- SESSION --------
-let currentTask;
-
-function start(){
-aiTask();
-}
-
-// -------- AI TASK --------
-function aiTask(){
-
-let tasks = [
-{
-type:"improve",
-prompt:"Improve this prompt:",
-content:"Give me business ideas"
-},
-{
-type:"create",
-prompt:"Write a prompt for:",
-content:"A service that can make money using AI"
-},
-{
-type:"real",
-prompt:"REAL TASK: What can you sell TODAY using AI?",
-content:"(Be specific)"
-}
-];
-
-currentTask = tasks[Math.floor(Math.random()*tasks.length)];
-
-center("AI Operator Task");
-
-show(`
-<h3>${currentTask.prompt}</h3>
-<p>${currentTask.content}</p>
-<textarea id="aiInput"></textarea>
-<br>
-<button onclick="submitAI()">Submit</button>
-`);
-}
-
-// -------- AI EVALUATION --------
-async function submitAI(){
-
-let input = document.getElementById("aiInput").value;
-
-center("AI Evaluating...");
-
-// economic tracking
-if(currentTask.type==="real"){
-state.revenueAttempts++;
-}
-
-// CALL OPENAI
-let response = await fetch("https://api.openai.com/v1/chat/completions",{
+let res=await fetch("https://api.openai.com/v1/chat/completions",{
 method:"POST",
 headers:{
 "Content-Type":"application/json",
@@ -847,281 +219,69 @@ model:"gpt-4o-mini",
 messages:[
 {
 role:"system",
-content:"You are a strict evaluator. Score the user's answer from 1 to 10 based on clarity, specificity, usefulness, and real-world applicability. Then give short feedback."
+content:`You are a strict coach.
+
+Score 1-10.
+Give feedback.
+Rewrite a better version.
+
+Format:
+
+Score: X/10
+Feedback: ...
+Improved: ...`
 },
 {
 role:"user",
-content:`TASK: ${currentTask.prompt} ${currentTask.content}
+content:`TASK: ${currentTask}
 
-USER ANSWER:
-${input}
-
-Return format:
-Score: X/10
-Feedback: ...`
+ANSWER:
+${input}`
 }
 ]
 })
 });
 
-let data = await response.json();
-let text = data.choices[0].message.content;
-
-// extract score
-let match = text.match(/Score:\s*(\d+)/);
-let score = match ? parseInt(match[1]) : 5;
-
-// APPLY SYSTEM LOGIC
-if(score >= 7){
-state.ai += 0.1;
-state.score += score;
-
-if(score >= 9){
-state.score += 2; // bonus for strong answers
+if(!res.ok){
+let err=await res.text();
+center("API Error");
+show(`<div class="output">${err}</div>`);
+return;
 }
 
-center("Strong Output 🔥");
+let data=await res.json();
+let text=data.choices[0].message.content;
+
+// score
+let match=text.match(/Score:\s*(\d+)/);
+let score=match?parseInt(match[1]):5;
+
+// progression
+if(score>=7){
+state.ai+=0.1;
+state.score+=score;
+center("Strong 🔥");
 }else{
-state.ai -= 0.05;
-center("Needs Improvement");
+state.ai-=0.05;
+center("Weak");
 }
 
-// LEVEL SYSTEM
-if(state.score >= state.aiLevel * 20){
-state.aiLevel++;
-center("LEVEL UP 🚀");
-}
-
-// SHOW FEEDBACK
-show(`
-<h3>AI Feedback</h3>
-<p>${text}</p>
-<button onclick="aiTask()">Next Task</button>
-`);
-
-save();
-}
-
-</script>
-
-</body>
-</html><div id="main"></div>
-<p id="stats"></p>
-
-<button onclick="start()">Start Session</button>
-
-<script>
-
-// -------- STATE --------
-let state = JSON.parse(localStorage.getItem("state")) || {
-math:1, memory:1, focus:1, ai:1,
-score:0, streak:0,
-aiLevel:1,
-revenueAttempts:0,
-history:[], lastDate:null
-};
-
-function save(){
-localStorage.setItem("state",JSON.stringify(state));
-updateUI();
-}
-
-// -------- UI --------
-function updateUI(){
-document.getElementById("rank").innerText =
-"AI Level: "+state.aiLevel+" | Score: "+state.score;
-
-document.getElementById("stats").innerText =
-"Revenue Attempts: "+state.revenueAttempts;
-}
-updateUI();
-
-function center(t){document.getElementById("center").innerHTML=t;}
-function show(t){document.getElementById("main").innerHTML=`<div class="card">${t}</div>`;}
-
-// -------- SESSION --------
-let session=[], current=0;
-
-function start(){
-session = generate();
-current = 0;
-next();
-}
-
-function generate(){
-let modules = ["math","memory","focus","ai"];
-let arr=[];
-
-for(let i=0;i<5;i++){
-arr.push(modules[Math.floor(Math.random()*modules.length)]);
-}
-return arr;
-}
-
-function next(){
-if(current>=session.length){complete();return;}
-let t=session[current];
-
-if(t==="math") math();
-if(t==="memory") memory();
-if(t==="focus") focus();
-if(t==="ai") aiTask();
-}
-
-// -------- AI MODULE --------
-function aiTask(){
-
-center("AI Operator");
-
-let level = state.aiLevel;
-
-let tasks = [
-{
-type:"improve",
-prompt:"Improve this prompt:",
-content:"Give me business ideas"
-},
-{
-type:"create",
-prompt:"Write a prompt for:",
-content:"A money-making idea using AI"
-},
-{
-type:"real",
-prompt:"REAL TASK: Generate a service you could sell TODAY",
-content:"(Example: AI resume service)"
-}
-];
-
-let t = tasks[Math.floor(Math.random()*tasks.length)];
-
-show(`
-<h3>${t.prompt}</h3>
-<p>${t.content}</p>
-<textarea id="aiInput"></textarea>
-<br>
-<button onclick='checkAI(${JSON.stringify(t)})'>Submit</button>
-`);
-}
-
-// -------- AI EVALUATION --------
-function checkAI(task){
-
-let input = document.getElementById("aiInput").value;
-let score = 0;
-
-// basic intelligence signals
-if(input.length > 30) score++;
-if(input.includes("specific") || input.includes("step")) score++;
-if(input.includes("target") || input.includes("audience")) score++;
-
-// REAL TASK bonus (economic thinking)
-if(task.type==="real"){
-state.revenueAttempts++;
-if(input.includes("$") || input.includes("sell")) score++;
-}
-
-if(score>=2){
-state.ai += 0.1;
-state.score += 3;
-center("Strong AI Output 🔥");
-
-// LEVEL UP
-if(state.score % 10 === 0){
-state.aiLevel++;
-center("LEVEL UP 🚀");
-}
-
-}else{
-state.ai -= 0.05;
-center("Too Generic");
-}
-
-current++;
-save();
-next();
-}
-
-// -------- BASIC TASKS --------
-function math(){
-center("Math");
-
-let n = Math.floor(Math.random()*20)+10;
-let c = n*11;
-
-show(`
-<h3>${n} × 11</h3>
-<input id="a">
-<button onclick="checkMath(${c})">Submit</button>
-`);
-}
-
-function checkMath(c){
-let v = parseInt(document.getElementById("a").value);
-
-if(v===c){state.math+=0.1;state.score++;}
-else{state.math-=0.05;}
-
-current++;save();next();
-}
-
-function memory(){
-center("Memory");
-
-let items=["dog","pizza","rocket"];
-show(`
-<p>${items.join(", ")}</p>
-<button onclick='recall(${JSON.stringify(items)})'>Start</button>
-`);
-}
-
-function recall(items){
-let i=items.map((_,x)=>`<input id="i${x}"><br>`).join("");
-show(i+`<button onclick='checkMemory(${JSON.stringify(items)})'>Check</button>`);
-}
-
-function checkMemory(items){
-let c=0;
-items.forEach((it,i)=>{
-if(document.getElementById("i"+i).value===it)c++;
-});
-
-if(c>1){state.memory+=0.1;}
-else{state.memory-=0.05;}
-
-state.score+=c;
-current++;save();next();
-}
-
-function focus(){
-center("Focus");
-
-show(`
-<h3>Focus 10s</h3>
-<button onclick="finishFocus()">Done</button>
-`);
-}
-
-function finishFocus(){
-state.focus+=0.1;
-current++;save();next();
-}
-
-// -------- COMPLETE --------
-function complete(){
-
-center("Session Complete 🔥");
-
-let today=new Date().toDateString();
-if(state.lastDate!==today){
-state.streak++;
-state.lastDate=today;
-}
-
-state.history.push(state.ai);
+state.history.push(score);
 if(state.history.length>20) state.history.shift();
 
 save();
+
+show(`
+<h3>Result</h3>
+<div class="output">${text}</div>
+<button onclick="start()">Next</button>
+`);
+
+}catch(e){
+center("Crash");
+show(`<div class="output">${e}</div>`);
+}
+
 }
 
 </script>

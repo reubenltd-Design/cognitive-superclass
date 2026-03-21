@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Polymath System V7</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<title>Polymath V7.1 AI</title>
 
 <style>
 body{
@@ -16,7 +15,6 @@ text-align:center;
 width:340px;margin:10px auto;padding:20px;
 border-radius:20px;
 background:rgba(255,255,255,0.08);
-backdrop-filter:blur(20px);
 }
 button{
 padding:10px;margin:5px;
@@ -30,11 +28,167 @@ textarea,input{width:90%;padding:8px;margin:5px;}
 
 <body>
 
-<h2>🧠 Polymath V7</h2>
+<h2>🧠 Polymath V7.1 (AI Evaluated)</h2>
 
-<div id="rank"></div>
 <div id="center"></div>
 <div id="main"></div>
+<p id="stats"></p>
+
+<button onclick="start()">Start Session</button>
+
+<script>
+
+// -------- CONFIG --------
+const API_KEY = "YOUR_API_KEY"; // 🔴 REPLACE THIS
+
+// -------- STATE --------
+let state = JSON.parse(localStorage.getItem("state")) || {
+ai:1,
+score:0,
+aiLevel:1,
+revenueAttempts:0
+};
+
+function save(){
+localStorage.setItem("state",JSON.stringify(state));
+updateUI();
+}
+
+function updateUI(){
+document.getElementById("stats").innerText =
+"AI Level: "+state.aiLevel+
+" | Score: "+state.score+
+" | Revenue Attempts: "+state.revenueAttempts;
+}
+updateUI();
+
+function center(t){document.getElementById("center").innerHTML=t;}
+function show(t){document.getElementById("main").innerHTML=`<div class="card">${t}</div>`;}
+
+// -------- SESSION --------
+let currentTask;
+
+function start(){
+aiTask();
+}
+
+// -------- AI TASK --------
+function aiTask(){
+
+let tasks = [
+{
+type:"improve",
+prompt:"Improve this prompt:",
+content:"Give me business ideas"
+},
+{
+type:"create",
+prompt:"Write a prompt for:",
+content:"A service that can make money using AI"
+},
+{
+type:"real",
+prompt:"REAL TASK: What can you sell TODAY using AI?",
+content:"(Be specific)"
+}
+];
+
+currentTask = tasks[Math.floor(Math.random()*tasks.length)];
+
+center("AI Operator Task");
+
+show(`
+<h3>${currentTask.prompt}</h3>
+<p>${currentTask.content}</p>
+<textarea id="aiInput"></textarea>
+<br>
+<button onclick="submitAI()">Submit</button>
+`);
+}
+
+// -------- AI EVALUATION --------
+async function submitAI(){
+
+let input = document.getElementById("aiInput").value;
+
+center("AI Evaluating...");
+
+// economic tracking
+if(currentTask.type==="real"){
+state.revenueAttempts++;
+}
+
+// CALL OPENAI
+let response = await fetch("https://api.openai.com/v1/chat/completions",{
+method:"POST",
+headers:{
+"Content-Type":"application/json",
+"Authorization":"Bearer "+API_KEY
+},
+body:JSON.stringify({
+model:"gpt-4o-mini",
+messages:[
+{
+role:"system",
+content:"You are a strict evaluator. Score the user's answer from 1 to 10 based on clarity, specificity, usefulness, and real-world applicability. Then give short feedback."
+},
+{
+role:"user",
+content:`TASK: ${currentTask.prompt} ${currentTask.content}
+
+USER ANSWER:
+${input}
+
+Return format:
+Score: X/10
+Feedback: ...`
+}
+]
+})
+});
+
+let data = await response.json();
+let text = data.choices[0].message.content;
+
+// extract score
+let match = text.match(/Score:\s*(\d+)/);
+let score = match ? parseInt(match[1]) : 5;
+
+// APPLY SYSTEM LOGIC
+if(score >= 7){
+state.ai += 0.1;
+state.score += score;
+
+if(score >= 9){
+state.score += 2; // bonus for strong answers
+}
+
+center("Strong Output 🔥");
+}else{
+state.ai -= 0.05;
+center("Needs Improvement");
+}
+
+// LEVEL SYSTEM
+if(state.score >= state.aiLevel * 20){
+state.aiLevel++;
+center("LEVEL UP 🚀");
+}
+
+// SHOW FEEDBACK
+show(`
+<h3>AI Feedback</h3>
+<p>${text}</p>
+<button onclick="aiTask()">Next Task</button>
+`);
+
+save();
+}
+
+</script>
+
+</body>
+</html><div id="main"></div>
 <p id="stats"></p>
 
 <button onclick="start()">Start Session</button>
